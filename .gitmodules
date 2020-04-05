@@ -5,3 +5,6 @@
 	path = master
 	url = https://github.com/cimeister/cimeister.github.io.git
 	branch = master
+[submodule "public"]
+	path = public
+	url = https://github.com/cimeister/cimeister.github.io.git
