@@ -17,6 +17,15 @@ organizations:
 - name: ETH Zürich
   url: "https://inf.ethz.ch"
 
+education:
+  courses:
+  - course: MSc in Computational and Mathematical Engineering
+    institution: Stanford University
+    year: 2018
+  - course: BSc in Mathematical and Computational Science
+    institution: Stanford University
+    year: 2017
+
 # Short bio (displayed in user profile at end of posts)
 bio: My research interests include decoding methods for sequence models, machine translation, and general applications of information theory and statistics to NLP
 
