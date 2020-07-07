@@ -9,5 +9,6 @@ featured: false
 publication: "*Proceedings of the 58th Annual Meeting of the Association for Computational Linguistics*"
 publication_short: "ACL"
 links:
+url_pdf: papers/meister+al.acl20.pdf
 ---
 

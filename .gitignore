@@ -6,3 +6,5 @@
 resources/
 master/
 public/
+
+upload_script.sh
