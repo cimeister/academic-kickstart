@@ -9,5 +9,8 @@ featured: false
 publication: "*Proceedings of the 2020 Conference on Empirical Methods in Natural Language Processing*"
 publication_short: "EMNLP"
 links:
+url_pdf: https://arxiv.org/abs/2010.02650
+extra: "**Best Paper Award: Honorable Mention**"
+url_slides: https://drive.google.com/file/d/1JfQWAKGLAEBs32fLifZxx58wgMKn3dK9/view?usp=sharing
 ---
 

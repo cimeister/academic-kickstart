@@ -1,0 +1,18 @@
+# Theme metadata
+name = "Apogee"
+
+# Is theme light or dark?
+light = true
+
+# Primary
+primary = "#db9600"
+
+# Menu
+menu_primary = "#312450"
+menu_text = "#F2BE4E"
+menu_text_active = "#FFE1A0"
+menu_title = "#E0A526"
+
+# Home sections
+home_section_odd = "#fff"
+home_section_even = "#faf0dc"

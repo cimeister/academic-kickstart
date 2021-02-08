@@ -9,6 +9,7 @@ featured: false
 publication: "*Transactions of the Association for Computational Linguistics*"
 publication_short: "TACL"
 links:
-url_pdf: papers/meister+al.tacl20.pdf
+url_pdf: https://arxiv.org/abs/2007.03909
+url_slides: https://drive.google.com/file/d/1RJoeh4vpAkGyGqUZtqTHfwJys-wxl8z_/view?usp=sharing
 ---
 

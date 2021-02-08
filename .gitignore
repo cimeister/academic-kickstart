@@ -2,9 +2,9 @@
 .idea/
 *.DS_Store
 
-# Hugo
-resources/
-master/
-public/
 
 upload_script.sh
+/resources/
+public/
+jsconfig.json
+node_modules/
