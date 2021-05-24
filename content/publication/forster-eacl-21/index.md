@@ -9,5 +9,7 @@ featured: false
 publication: "*Proceedings of the 16th Conference of the European Chapter of the Association for Computational Linguistics*"
 publication_short: "EACL"
 links:
+url_pdf: https://arxiv.org/abs/2102.08424
+url_poster: https://drive.google.com/file/d/1FdZJ7xRWEUwKdExcI2ZebqcsVibhTtXE/view?usp=sharing
 ---
 

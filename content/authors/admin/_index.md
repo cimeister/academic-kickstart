@@ -33,7 +33,7 @@ bio: My research interests include decoding methods for sequence models, machine
 interests:
 - Decoding Methods for Sequence Models
 - Statistical Methods for NLP
-- Probability Theory
+- Probability Theory 
 - Natural Language Generation
 
 
@@ -66,5 +66,5 @@ email: ""
 highlight_name: false
 
 ---
-I recently started my PhD in Computer Science with Professor Ryan Cotterell at ETH Zürich. I am passionate about the general applications of statistics and information theory to natural language processing; lately, my research has been on decoding methods for sequence models. In my free time, I like to rock climb, trail run, and search for the elusive cheap bar in Switzerland. You can check out some of my adventures on my husband's blog: http://www.timaiken.org/blog
+I'm a second year PhD in Computer Science with Professor Ryan Cotterell at ETH Zürich. I am passionate about the general applications of statistics and information theory to natural language processing; lately, my research has been on decoding methods for sequence models. In my free time, I go rock climbing, trail running, and just about everything that [falls in between the two](https://www.pinterest.com/pin/254171972697256670/). You can check out some of my adventures on my husband's blog: http://www.timaiken.org/blog
 

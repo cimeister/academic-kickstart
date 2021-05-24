@@ -3,7 +3,7 @@
 # Documentation: https://wowchemy.com/docs/page-builder/
 widget: about
 
-title: About Me
+title: Bio
 # Activate this widget? true/false
 active: true
 
