@@ -13,7 +13,7 @@ featured: false
 publication: "*Proceedings of the 59th Annual Meeting of the Association for Computational Linguistics*"
 publication_short: "ACL"
 links:
-url_pdf: 
+url_pdf: https://arxiv.org/abs/2106.07400
 url_slides: 
 ---
 
