@@ -56,6 +56,10 @@ subtitle = ""
 
 * **5/5:** 4 papers accepted to ACL 2021 main conference
 
+* **23/03:** Giving a talk at University of Amsterdam's computational linguistics seminar
+
+* **03/02:** Giving a talk for NLP with Friends  
+
 * **28/1:** 1 paper accepted to EACL 2021
 
 
