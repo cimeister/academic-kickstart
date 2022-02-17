@@ -51,6 +51,10 @@ social:
 - icon: github
   icon_pack: fab
   link: https://github.com/cimeister
+- icon: google
+  icon_pack: fab
+  link: https://scholar.google.com/citations?user=quJhNH8AAAAJ&hl=en
+  
 # Link to a PDF of your resume/CV from the About widget.
 # To enable, copy your resume/CV to `static/files/cv.pdf` and uncomment the lines below.
 # - icon: cv
@@ -66,5 +70,5 @@ email: ""
 highlight_name: false
 
 ---
-I'm a second year PhD in Computer Science with Professor Ryan Cotterell at ETH Zürich. I am passionate about the general applications of statistics and information theory to natural language processing; lately, my research has been on decoding methods for sequence models. In my free time, I go rock climbing, trail running, and just about everything that [falls in between the two](https://www.pinterest.com/pin/254171972697256670/). You can check out some of my adventures on my husband's blog: http://www.timaiken.org/blog
+I'm a PhD student in Computer Science with Professor Ryan Cotterell at ETH Zürich. As of March 2022, I will be interning with DeepMind's language team. I am passionate about the general applications of statistics and information theory to natural language processing; lately, my research has been on decoding methods for sequence models. In my free time, I go rock climbing, trail running, and just about everything that [falls in between the two](https://www.pinterest.com/pin/254171972697256670/). You can check out some of my adventures on my husband's [instagram](https://www.instagram.com/timaiken/) and [blog](http://www.timaiken.org/blog).
 
