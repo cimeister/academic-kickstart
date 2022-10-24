@@ -29,7 +29,15 @@ experience:
     location: Zürich, Switzerland
     date_start: 2020-02-01
     date_end: 
-    description: PhD student in the Computer Science Department (Machine Learning Institute).
+    description: PhD student in the Computer Science Department (Machine Learning Institute). Helped to design and teach [Natural Language Processing class](https://rycolab.io/classes/intro-nlp-f22/).
+
+  - title: Research Scientist Intern
+    company: DeepMind
+    company_url: 
+    location: London, UK
+    date_start: 2022-03-01
+    date_end: 2022-08-01
+    description: Intern with the Language Team, working with Adhi Kuncoro, Wojciech Stokowiec, and Laura Rimell.
 
   - title: Research Assistant
     company: ETH Zürich
