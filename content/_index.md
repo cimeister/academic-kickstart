@@ -90,6 +90,17 @@ sections:
 
     design:
       columns: '2'
+
+  - block: collection
+    id: blog
+    content:
+      title: Blog Posts
+      filters:
+        folders:
+          - blog
+      
+    design:
+      columns: '2'
  
   - block: collection
     id: publications
