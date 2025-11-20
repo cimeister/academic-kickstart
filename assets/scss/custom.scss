@@ -1,0 +1,16 @@
+/* Narrow the main blog content column */
+.article-container,
+.single-article .container,
+.post-container {
+  max-width: 1028px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+
+/* Slightly nicer paragraph text */
+.article-container p {
+  line-height: 1.7;
+  font-size: 0.8rem;
+}
+

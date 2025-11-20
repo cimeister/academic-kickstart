@@ -42,7 +42,8 @@ header:
 # Site footer
 
 
-
+customSCSS:
+  - "scss/custom.scss"
 # Localization
 
 locale:
@@ -57,7 +58,7 @@ features:
     theme_light: github-light
     theme_dark: dracula
   math:
-    enable: false
+    enable: true
   privacy_pack:
     enable: false
   repository:
@@ -90,6 +91,9 @@ features:
     provider: ''
     api_key: ''
     zoom: 15
+  social:
+    twitter: false
+    linkedin: false
 
 # Extensions
 
