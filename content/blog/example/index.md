@@ -35,19 +35,36 @@ view: 1
 math: true
 
 ---
+**TL;DR**:  This post is my attempt to write down the UnigramLM tokenization cleanly and explicitly—because
+the original paper is more of a sketch than a full spec, and the real algorithm
+is basically the implementation in the SentencePiece library. We'll formalize the unigram generative
+model, derive the EM updates, explain why pruning is needed (and how it's done), and point out the
+spots where the practical implementation quietly diverges from the tidy math. And hopefully, by the end, you'll think 
+the UnigramLM algorithm is just as cool as I do. 
+
+### Origins of this blog post
+*(feel free to skip this section)*
+
+These days, tokenization is basically syonymous with Byte-pair Encoding (BPE). If you ask someone "do you know how tokenization works?", there's a decent chance you’ll get an answer like: "Yeah yeah, I know BPE."" 
+
+But there's this other tokenizer sitting right next to BPE in practice: UnigramLM
+(the SentencePiece "unigram" model). On paper it looks totally different. Instead of greedily merging pairs, it says: "let's uncover latent tokens and treat tokenization like inference." At least to me, that framing feels a lot more linguistically sane (or, at minimum, less like we’re playing subword Tetris). 
+Naturally, I figured I should actually understand the algorithm. 
+So I did what everyone does: I went to the original 2018 paper. That... didn't get me very far. So then I went to the SentencePiece repo, hoping I could reconstruct the missing pieces from the code. After a brief flashback while staring at the C++ implementation to the terror of my undergraduate CS classes, I bailed on that approach too. Then I thought maybe the missing explanation was hiding in the HuggingFace documentation — but let's just say that rabbit hole ended like this:
+
+
 > *The HuggingFace documentation* \[on UnigramLM\] *describes a
 > tokeniser that doesn’t exist. It should not be relied on as an
 > explanation for UnigramLM, because it doesn’t even come close.*  
 > –Claude
 
-When I first tried to _really_ understand UnigramLM, I did what everyone does: I went to the original 2018 paper. That... didn't get me very far. So then I went to the SentencePiece repo, hoping I could reconstruct the missing pieces from the code. After a brief flashback while staring at the C++ implementation to the terror of my undergraduate CS classes, I bailed on that approach too. The paper gives a nice high-level story, and the code clearly works in practice, but I couldn't find a single place that actually spells out the full generative model, why the algorithm is mathematically sound, or how all the little "engineering details" (like pruning and vocabulary initialization) fit into that picture.
+The original paper gives a nice high-level story, and the code clearly works in practice, but I couldn't find a single place that actually spells out the full generative model, why the algorithm is mathematically sound, or how all the little "engineering details" (like pruning and vocabulary initialization) fit into that picture. At that point, I figured to myself, well this is a _unigram_ model. How complicated can it be? I can definitely reason through the logic myself. Turns out that was a tad bit naive. But I'm nothing if not stubborn, so here we are a few months later! 
 
-At that point, I figured to myself, well this is a _unigram_ model. How complicated can it be? I can definitely reason through the logic myself. Turns out that was a tad bit naive. But I'm nothing if not stubborn, so here we are a few months later! 
-
-This post is what I wish I'd had at the start of the endeavor--approachable but rigorous walkthrough of UnigramLM as a probabilistic model, showing why EM is a reasonable tool here, what the posterior over segmentations actually looks like, and how the SentencePiece-style implementation approximates all of this in practice. If you've ever felt that UnigramLM is "clear enough to use, but not clear enough to explain on a whiteboard," my hope is that this takes you the rest of the way to really understanding it, and maybe even extending it. Because at least I think its a pretty cool algorithm that deserves some of BPE's limelight. 
+This post is what I wish I'd had at the start of that endeavor--an approachable but rigorous walkthrough of UnigramLM as a probabilistic model, showing why EM is a reasonable tool here, what the posterior over segmentations actually looks like, and how the SentencePiece-style implementation approximates all of this in practice. If you've ever felt that UnigramLM is "clear enough to use, but not clear enough to explain on a whiteboard," my hope is that this takes you the rest of the way to really understanding it, and maybe even extending it. Because at least I think its a pretty cool algorithm that deserves some of BPE's limelight. 
 
 
-# Tokenization
+
+# Tokenization Background and Notation
 
 So that we're on the same page, let's start with a formal definition of tokenization. 
 
@@ -123,23 +140,23 @@ which the inference rule---the mapping
 ${h}:{\Sigma}^\*\rightarrow{\mathcal{V}}^\*$ that selects a particular
 element of ${\mathcal{T}}\_{\mathcal{V}}({\mathbf{{s}}})$---is replaced
 or redefined, for example by sampling from a posterior over
-segmentations [@kudo-2018-subword] or by changing the inference
+segmentations (Kudo 2018) or by changing the inference
 objective to something like minimizing token sequence length
-[@hofmann-etal-2022-embarrassingly; @schmidt-etal-2024-tokenization]. It
-also means that we need to differentiate between the **canonical
-tokenization** of ${\mathbf{{s}}}$, which is simply
-${h}({\mathbf{{s}}})$, and any other valid segmentation
+(Hofmann et. al., 2022; Schmidt et. al. 2024). It
+It also means that we should distinguish between the **canonical tokenization** 
+of ${\mathbf{{s}}}$, which is ${h}({\mathbf{{s}}})$, and any other valid segmentation
 ${\mathbf{{v}}}\in {\mathcal{T}}\_{\mathcal{V}}({\mathbf{{s}}})$ with
-${\mathbf{{v}}}\neq {h}({\mathbf{{s}}})$, which we refer to as
-**non-canonical tokenizations**. The existence of non-canonical
+${\mathbf{{v}}}\neq {h}({\mathbf{{s}}})$,
+which are typically called **non-canonical tokenizations**.
+The existence of non-canonical
 tokenizations has implications for how one should actually compute the
-probability of a string under a language model using a given vocabulary.
-See @cao-rimell-2021-evaluate for a more detailed discussion of
+probability of a string under a language model using a given vocabulary. 
+See Cao and Rimell (2021) for a more detailed discussion of
 non-canonical tokenizations and why they matter in practice.
 
-# UnigramLM
+# What you came here for: UnigramLM
 
-The UnigramLM tokenization algorithm [@kudo-2018-subword] takes a
+The UnigramLM tokenization algorithm (Kudo 2018) takes a
 probabilistic-modeling approach to string tokenization. It defines an
 ${h}$, together with an algorithm for learning its parameters, by
 treating tokenization as inference in a latent-variable generative model
@@ -374,7 +391,7 @@ relate the *expected value* of the complete data log-likelihood to the
 *observed* data log-likelihood, i.e., relating the expected value of
 Eq. (7) to
 Eq. (8). This is exactly the connection made
-by @kudo-2018-subword (even if not explicitly) when introducing their
+by Kudo (2018) (even if not explicitly) when introducing their
 algorithm for approximating the parameters ${\boldsymbol{\phi}}$.
 
 #### Expected complete-data log-likelihood under observed data and current parameters.
@@ -426,10 +443,9 @@ Jensen's inequality tells us $$
 &= \log \sum\_{{\mathbf{{v}}}\in {\mathcal{T}}\_{{\mathcal{V}}}({\mathbf{{s}}})} P({\mathbf{V}}={\mathbf{{v}}})\frac{P({\mathbf{V}}={\mathbf{{v}}};{\boldsymbol{\phi}})}{P({\mathbf{V}}={\mathbf{{v}}})}\\\ 
 &\ge \sum\_{{\mathbf{{v}}}\in {\mathcal{T}}\_{{\mathcal{V}}}({\mathbf{{s}}})} P({\mathbf{V}}={\mathbf{{v}}})\log \frac{P({\mathbf{V}}={\mathbf{{v}}};{\boldsymbol{\phi}})}{P({\mathbf{V}}={\mathbf{{v}}})}
 \end{aligned}
-$$ If we choose $P({\mathbf{V}}={\mathbf{{v}}})$ to be
-${\mathbf{{s}}}$
+$$ If we choose $P({\mathbf{V}}={\mathbf{{v}}})$ to be 
 $P({\mathbf{V}}={\mathbf{{v}}}\mid {\mathbf{S}}= {\mathbf{{s}}};{{\boldsymbol{\phi}}^{(n)}})$---the
-posterior under our current parameter beliefs for a fixed---and apply
+posterior under our current parameter beliefs for a fixed ${\mathbf{{s}}}$---and apply
 this to our definition of the observed data log-likelihood from
 Eq. (8), we get $$
 \begin{aligned}
@@ -601,7 +617,7 @@ $$ Substituting these relationships into our definition of
         ${{\boldsymbol{\phi}}^{(n)}}$): In the M-step, we want to
         maximize
         ${\mathcal{Q}}({\boldsymbol{\phi}};{{\boldsymbol{\phi}}^{(n)}})$
-        with respect to ${\boldsymbol{\phi}}$ subject tp these
+        with respect to ${\boldsymbol{\phi}}$ subject to these
         parameters giving us a valid probability distribution, i.e.,
         $\sum\_{{v}\in{\mathcal{V}}}{\phi\_{v}}=1$ and
         ${\phi\_{v}}\ge 0$. Subbing in the relationship established in
@@ -792,7 +808,7 @@ and easily replaced by a segmentation whose product of probabilities is
 similar to ${P({V}=\text{international};{{\boldsymbol{\phi}}^{(n)}})}$,
 then its (approximate) loss will be small, making it a good candidate
 for pruning.*
-:::
+
 
 While this approximation does not account for changes in other valid
 paths' probabilities that might happen as a result of removing ${v}$
@@ -803,7 +819,7 @@ tried to run the algorithm with the real, brute-force loss computation).
 ### Implementation in the SentencePiece library
 
 In practice, the UnigramLM algorithm as we know it is largely defined by
-the public SentencePiece implementation, since @kudo-2018-subword give
+the public SentencePiece implementation, since Kudo (2018) give
 only a high-level description and leave many engineering choices
 under-specified. The library makes a number of concrete design decisions
 that go beyond the abstract EM + pruning picture above.
@@ -833,7 +849,7 @@ $\log {\phi\_{v}}$ under a Dirichlet posterior. Intuitively, this
 pieces from collapsing to near-zero probability too early.
 
 Arguably some of the more critical design choices to be aware of are
-those pertaining to normalization and pretokenization, as these chage
+those pertaining to normalization and pretokenization, as these change
 which segmentations are feasible. By default it applies NFKC
 normalization, collapses whitespace, inserts a dummy-prefix marker, and
 treats whitespace (and often script/number boundaries) as explicit
