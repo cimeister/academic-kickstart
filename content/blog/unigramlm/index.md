@@ -1,6 +1,6 @@
 ---
 widget: pages
-title: 'UnigramLM: The Missing Manual'
+title: 'UnigramLM: An Attempt at Writing The Missing Manual'
 
 
 summary: Everything you didn't need to know about UnigramLM
