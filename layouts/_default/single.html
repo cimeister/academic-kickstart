@@ -1,0 +1,37 @@
+{{ define "main" }}
+<div class="w-full px-4 my-10 max-w-[95vw] mx-auto">
+  
+  <div class="grid grid-cols-1 lg:grid-cols-4 gap-12">
+
+    {{/* COLUMN 1: THE ARTICLE (Takes up 3/4 of space on large screens) */}}
+    <div class="lg:col-span-3">
+      <article class="w-full prose prose-xl max-w-none dark:prose-invert">
+        
+        {{/* Title & Date */}}
+        <h1 class="text-4xl font-bold mb-4">{{ .Title }}</h1>
+        <div class="text-gray-500 mb-8">
+          {{ if .Date }}{{ .Date | time.Format ":date_long" }}{{ end }}
+        </div>
+
+        {{/* The Content */}}
+        {{ .Content }}
+      </article>
+    </div>
+
+    {{/* COLUMN 2: THE SIDEBAR (Takes up 1/4 of space, hidden on mobile) */}}
+    <div class="hidden lg:block lg:col-span-1">
+      <div class="sticky top-24 p-6 border-l border-gray-200 dark:border-gray-700">
+        <h2 class="text-lg font-bold mb-4 uppercase tracking-wider text-gray-600 dark:text-gray-400">
+          On this page
+        </h2>
+        {{/* This generates the automated Table of Contents */}}
+        <nav id="TableOfContents">
+          {{ .TableOfContents }}
+        </nav>
+      </div>
+    </div>
+
+  </div>
+
+</div>
+{{ end }}

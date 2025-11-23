@@ -1,0 +1,15 @@
+.page-body, 
+  article, 
+  .prose, 
+  div[class*="bg-white"], /* Targets any white background tailwind classes */
+  div[class*="shadow"]    /* Targets any shadow tailwind classes */
+  {
+      background-color: transparent !important;
+      box-shadow: none !important;
+      border: none !important;
+  }
+
+  /* 2. Optional: Remove the rounded corners if they are still visible */
+  * {
+      border-radius: 0 !important;
+  }

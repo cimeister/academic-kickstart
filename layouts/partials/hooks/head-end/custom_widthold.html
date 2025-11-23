@@ -1,0 +1,31 @@
+<style>
+  /* ------------------------------------------------ */
+  /* FORCE WIDTH ON ALL STANDARD PAGES               */
+  /* ------------------------------------------------ */
+
+  /* 1. Target the main content column */
+  .page-body,         /* Common container name */
+  article,            /* Standard HTML tag for posts */
+  div.prose,          /* Tailwind typography container */
+  div.max-w-prose,    /* The specific class limiting width */
+  main .mx-auto       /* The centering class */
+  {
+      max-width: 95vw !important; /* Force 95% width */
+      min-width: 95vw !important;
+      margin-left: auto !important;
+      margin-right: auto !important;
+      padding-left: 20px !important;
+      padding-right: 20px !important;
+  }
+
+  /* 2. Ensure specific Tailwind constraints are broken */
+  .max-w-3xl, .max-w-4xl, .max-w-screen-xl {
+      max-width: 100% !important;
+  }
+
+  /* 3. Remove the white box/shadow wrapper if it exists */
+  article, .page-body {
+      background: transparent !important;
+      box-shadow: none !important;
+  }
+</style>

@@ -1,0 +1,71 @@
+<style>
+  /* ------------------------------------------------ */
+  /* FIX 1: WIDE CONTAINER & WIDTHS                  */
+  /* ------------------------------------------------ */
+  .blog-post .page-body,
+  .blog-post .container,
+  .blog-post article {
+      max-width: 95vw !important;
+      width: 95vw !important;
+      margin-left: auto !important;
+      margin-right: auto !important;
+      padding-left: 1rem;
+      padding-right: 1rem;
+  }
+
+  .blog-post .prose,
+  .blog-post .max-w-prose {
+      max-width: 100% !important;
+      min-width: 0 !important;
+  }
+
+  .blog-post .page-body,
+  .blog-post article,
+  div[class*="bg-white"],
+  div[class*="shadow"] {
+      background-color: transparent !important;
+      box-shadow: none !important;
+      border: none !important;
+  }
+
+  /* ------------------------------------------------ */
+  /* FIX 2: TABLE OF CONTENTS STYLING                */
+  /* ------------------------------------------------ */
+
+  /* Reset bullets and padding */
+  #TableOfContents ul,
+  #TableOfContents li {
+      list-style: none !important;
+      padding-left: 0 !important;
+      margin: 0 !important;
+  }
+
+  /* LEVEL 1 (H2): Big, Bold, and Dark */
+  #TableOfContents > ul > li > a {
+      display: block;
+      margin-top: 15px;            /* Space between main sections */
+      margin-bottom: 5px;
+      font-size: 1.1rem !important;
+      font-weight: 800 !important; /* Extra Bold */
+      color: #111827 !important;   /* Almost Black */
+      text-decoration: none !important;
+  }
+
+  /* LEVEL 2 (H3): Small, Indented, and Grey */
+  /* This targets the inner lists */
+  #TableOfContents ul ul li a {
+      display: block;
+      margin-top: 4px;
+      margin-left: 15px !important;  /* Indent subsections */
+      font-size: 0.9rem !important;  /* Smaller font */
+      font-weight: 400 !important;   /* Normal weight */
+      color: #6b7280 !important;     /* Grey color */
+      text-decoration: none !important;
+  }
+
+  /* Hover Effects */
+  #TableOfContents a:hover {
+      color: #2563eb !important; /* Blue on hover */
+      text-decoration: underline !important;
+  }
+</style>

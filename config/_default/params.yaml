@@ -5,8 +5,10 @@
 
 # Appearance
 appearance:
-  mode: system
-  color: indigo
+  theme_day: my_theme
+  theme_night: minimal
+  font: minimal
+  font_size: L
 
 # SEO
 marketing:
@@ -26,21 +28,26 @@ marketing:
     google: ''
     baidu: ''
 
+customCSS:
+    - css/custom.css
+customSCSS:
+  - "scss/custom.scss"
+# Localization
+
 # Site header
 header:
   navbar:
     enable: true
-    block: 'navbar'
-    fixed_to_top: true
+    align: l
+    show_logo: true
+    show_language: false
+    show_day_night: true
     show_search: true
-    show_theme_chooser: true
-    logo:
-      text: 'Your Name'
+    highlight_active_link: true
 
 # Site footer
 footer:
   copyright:
-    notice: '© {year} Me. This work is licensed under {license}'
     license:
       enable: true
       allow_derivatives: false
@@ -54,7 +61,43 @@ locale:
 
 # Site features
 features:
+  syntax_highlighter:
+    theme_light: github-light
+    theme_dark: dracula
   math:
-    enable: false
+    enable: true
   privacy_pack:
     enable: false
+  repository:
+    url: 'https://github.com/<username>/<repository>'
+    content_dir: content
+    branch: main
+  avatar:
+    gravatar: false
+    shape: circle
+  comment:
+    provider: ''
+    disqus:
+      shortname: ''
+      show_count: true
+    commento:
+      url: ''
+    giscus:
+      repo: ''
+      repo_id: ''
+      category: ''
+      category_id: ''
+  search:
+    provider: wowchemy
+    algolia:
+      app_id: ''
+      api_key: ''
+      index_name: ''
+      show_logo: false
+  map:
+    provider: ''
+    api_key: ''
+    zoom: 15
+  social:
+    twitter: false
+    linkedin: false

@@ -1,0 +1,23 @@
+{{/* Define the item variable from the context passed by the block */}}
+{{ $item := .item }}
+
+<div class="py-6 border-b border-gray-100 dark:border-gray-700 last:border-0">
+  {{/* Title */}}
+  <h3 class="text-2xl font-bold mb-2">
+    <a href="{{ $item.RelPermalink }}" class="text-gray-900 dark:text-white hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+      {{ $item.Title }}
+    </a>
+  </h3>
+
+  {{/* Metadata (Date) */}}
+  <div class="text-sm text-gray-500 dark:text-gray-400 mb-3">
+    {{ if $item.Date }}
+      {{ $item.Date | time.Format ":date_long" }}
+    {{ end }}
+  </div>
+
+  {{/* Summary */}}
+  <div class="text-gray-700 dark:text-gray-300 leading-relaxed">
+    {{ $item.Summary | default $item.Content | truncate 200 }}
+  </div>
+</div>

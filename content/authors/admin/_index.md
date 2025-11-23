@@ -1,20 +1,13 @@
 ---
 # Display name
-title: Alex Johnson
+title: Clara Meister
 
 # Name pronunciation (optional)
 name_pronunciation: ''
 
 # Full name (for SEO)
-first_name: Alex
-last_name: Johnson
-
-# Pronouns (optional)
-pronouns: he/him
-
-# Status emoji
-status:
-  icon: 🚀
+first_name: Clara
+last_name: Meister
 
 # Is this the primary user of the site?
 superuser: true
@@ -23,150 +16,116 @@ superuser: true
 highlight_name: true
 
 # Role/position/tagline
-role: Senior AI Research Scientist
+# Role/position
+role: Postdoc in Computer Science
 
-# Organizations/Affiliations to display in Biography blox
+# Organizations/Affiliations to show in About widget
 organizations:
-  - name: Meta AI
-    url: https://ai.meta.com/
+- name: ETH Zürich
+  url: "https://inf.ethz.ch"
+
 
 # Social network links
 # Need to use another icon? Simply download the SVG icon to your `assets/media/icons/` folder.
 profiles:
   - icon: at-symbol
-    url: 'mailto:alex.johnson@meta.com'
+    url: 'mailto:meistecl@inf.ethz.ch'
     label: E-mail Me
   - icon: brands/x
-    url: https://twitter.com/AlexAIResearch
+    url: https://twitter.com/ClaraIsabelMei1
   - icon: brands/github
-    url: https://github.com/alexjohnsonai
-  - icon: brands/linkedin
-    url: https://www.linkedin.com/in/alexjohnsonai/
+    url: https://github.com/cimeister
   - icon: academicons/google-scholar
-    url: https://scholar.google.com/citations?user=alexjohnson
-  - icon: academicons/orcid
-    url: https://orcid.org/0000-0002-1825-0097
+    url: https://scholar.google.com/citations?user=quJhNH8AAAAJ&hl=en
 
-interests:
-  - Large Language Models
-  - Computer Vision
-  - Reinforcement Learning
-  - AI Ethics
+
 
 education:
-  - area: PhD Computer Science (AI Focus)
+  - area: PhD in Computer Science
+    institution: ETH Zürich
+    year: 2024
+  - area: MSc in Computational and Mathematical Engineering
     institution: Stanford University
-    icon: ""
-    date_start: 2015-09-01
-    date_end: 2019-06-30
-    summary: |
-      Thesis on _Scaling Laws for Neural Language Models_. Supervised by Prof. Andrew Ng. Published 5 papers in NeurIPS and ICML, with 2 best paper awards.
-    button:
-      text: 'Read Thesis'
-      url: 'https://example.com/thesis.pdf'
-  - area: MS Computer Science
-    institution: Carnegie Mellon University
-    icon: ""
-    date_start: 2013-09-01
-    date_end: 2015-05-31
-    summary: |
-      GPA: 4.0/4.0
+    year: 2018
+  - area: BSc in Mathematical and Computational Science
+    institution: Stanford University
+    year: 2017
 
-      Specialized in machine learning and robotics.
-  - area: BS Computer Science
-    institution: MIT
-    icon: ""
-    date_start: 2009-09-01
-    date_end: 2013-05-31
-    summary: |
-      GPA: 3.9/4.0
 
-      Minored in Mathematics. President of AI Club.
 
 work:
-  - position: Senior AI Research Scientist
-    company_name: Meta AI
-    company_url: 'https://ai.meta.com/'
-    icon: ''
-    date_start: 2020-01-01
-    date_end: ''
-    summary: |2-
-      Leading research on multimodal AI systems. Contributed to Llama 2 and other open-source models. 50+ citations in 3 years.
-  - position: AI Research Intern
-    company_name: OpenAI
-    company_url: 'https://openai.com/'
-    icon: ''
-    date_start: 2019-06-01
-    date_end: 2019-12-31
-    summary: |
-      Worked on GPT-3 scaling. Co-authored paper on prompt engineering.
+  - position: Postdoc
+    company: ETH Zürich
+    company_url: 
+    location: Zürich, Switzerland
+    date_start: 2020-09-01
+    date_end: 
+    description: Postdoc designing an AI project course for the AI and Data Technologies MAS degree.
+  - title: PhD Student
+    company: ETH Zürich
+    company_url: 
+    location: Zürich, Switzerland
+    date_start: 2020-02-01
+    date_end: 2024-11-05
+    description: PhD student in the Computer Science Department (Machine Learning Institute). Helped to design and teach the [Natural Language Processing course](https://rycolab.io/classes/intro-nlp-f22/) and develop material for the [Large Language Models course](https://rycolab.io/classes/llm-s23/). Advised 13 MsC theses and various semester research projects.
+  - title: Research Scientist Intern
+    company: DeepMind
+    company_url: 
+    location: London, UK
+    date_start: 2022-03-01
+    date_end: 2022-08-01
+    description: Intern with the Language Team, working with Adhi Kuncoro, Wojciech Stokowiec, and Laura Rimell.
+  - title: Research Assistant
+    company: ETH Zürich
+    company_url: 
+    location: Zürich, Switzerland
+    date_start: 2019-01-01
+    date_end: 2020-02-01
+    description:  Research assistant in the Advanced Software Technologies Lab under Professor Zhendong Su. Area of focus was on building systems for automatically testing machine translation systems. 
+  - title: Research Assistant
+    company: SLAC National Accelerator Laboratory
+    company_url: 
+    location: Stanford, California
+    date_start: 2018-01-01
+    date_end: 2018-06-30
+    description: Research assistant with the Linac Coherent Light Source lab working with scientists to modify and enhance code base for analysis of electron pulse x-ray images generated at SLAC’s new hard x-ray free-electron laser.
+  - title: Course Assistant
+    company: Stanford University Computer Science Department
+    company_url: 
+    location: Stanford, California
+    date_start: 2017-09-01
+    date_end: 2017-12-31
+    description: Course assistant for CS102 Big Data- Tools and Techniques, Discoveries and Pitfalls. Taught students basic data wrangling and analysis along with visualization techniques using multiple software platforms.
+  - title: Data Science Intern
+    company: Akamai Technologies
+    location: Mountain View, California
+    date_start: 2016-09-01
+    date_end: 2017-06-01
+    description: Part-time internship during academic school year. Projects included integrating AWS ElastiCache into infrastructure of the Data Science Team’s services and refactoring libraries to support multiple databases.
+  - title: Software Engineering Intern
+    company: Cisco Systems; Tendril Networks; SAP Hybris
+    location: San Jose, California; Boulder, Colorado
+    date_start: 2015-06-01
+    date_end: 2017-09-01
+    description: Summer software engineering internships 2015-2017
 
-# Skills
-# Add your own SVG icons to `assets/media/icons/`
-skills:
-  - name: Technical Skills
-    items:
-      - name: Python & PyTorch
-        description: ''
-        percent: 95
-        icon: code-bracket
-      - name: Machine Learning
-        description: ''
-        percent: 100
-        icon: chart-bar
-      - name: Cloud Computing (AWS/GCP)
-        description: ''
-        percent: 85
-        icon: cloud
-  - name: Hobbies
-    color: '#eeac02'
-    color_border: '#f0bf23'
-    items:
-      - name: Hiking in the Rockies
-        description: ''
-        percent: 80
-        icon: person-simple-walk
-      - name: Building Custom PCs
-        description: ''
-        percent: 90
-        icon: cpu-chip
-      - name: Sci-Fi Reading
-        description: ''
-        percent: 70
-        icon: book-open
 
-languages:
-  - name: English
-    percent: 100
-  - name: Spanish
-    percent: 50
 
-# Awards.
-#   Add/remove as many awards below as you like.
-#   Only `title`, `awarder`, and `date` are required.
-#   Begin multi-line `summary` with YAML's `|` or `|2-` multi-line prefix and indent 2 spaces below.
-awards:
-  - title: Best Paper Award
-    url: https://neurips.cc/
-    date: '2022-12-01'
-    awarder: NeurIPS
-    icon: hero/trophy
-    summary: |
-      Awarded for groundbreaking work on efficient training of large models.
-  - title: AI Innovation Grant
-    url: https://www.nsf.gov/
-    date: '2021-06-15'
-    awarder: National Science Foundation
-    icon: hero/currency-dollar
-    summary: |
-      $500,000 grant for research in ethical AI development.
-  - title: Outstanding PhD Thesis
-    url: https://www.stanford.edu/
-    date: '2019-06-30'
-    awarder: Stanford University
-    icon: hero/academic-cap
-    summary: |
-      Recognized for contributions to scaling laws in deep learning.
 ---
 
-Alex Johnson is a Senior AI Research Scientist at Meta AI, where he leads groundbreaking work on large language models and multimodal systems. His research has been published in top conferences like NeurIPS and ICML, with over 10,000 citations. Alex is passionate about pushing the boundaries of AI while ensuring ethical development. Outside of work, he enjoys hiking in the Rockies, building custom PCs, and mentoring the next generation of AI talent.
+I'm a postdoc at ETH Zürich in the computer science department, working with Prof. Bernd Gärtner to design a [Masters of Advanced Studies in AI and Data Technologies](https://mas-aid.ethz.ch/).  Previously, I did my PhD at ETH supported by a Google PhD Fellowship in natural language processing. A large portion of my research in the last years has been on natural language generation---specifically, on decoding methods for probabilistic models. While my job is no longer research-related, I still occasionally work on research projects; see my [Google Scholar](https://scholar.google.com/citations?user=quJhNH8AAAAJ&hl=en) page for an up-to-date list of publications. Lately, I'm particularly interested in tokenization strategies for language models. Feel free to reach out if you'd like to discuss research! 
+<!-- In my free time, I like to rock climb, trail run and drink wine.  -->
+
+<!-- I have had the privilege of serving as the advisor for several MSc students during the writing of their theses. Some of these theses have turned into published works.
+Gabriel/Wayne/UZH girl
+* **Luca Malagutti**: *Divergence functions for Natural Language Generation*
+* **Liam van der Poel**: *Mutual Information for Identifying and Preventing Hallucinations in Abstractive Summarization* ([EMNLP Paper](https://aclanthology.org/2022.emnlp-main.399/))
+* **Andy Buinovskij**: *Advanced Smoothing Techniques for Training Neural Language Model*
+* **Samuel Pullely**: *Text Detoxification using Pre-Trained Language Models and Plug-and-Play Generation Methods*
+* **Franz Knobel**: *Probing Language Models With Topic Models*
+* **Gian Wiher**: *A Taxonomy of Decoding Schemes for Language Generation Models* ([TACL Paper](https://direct.mit.edu/tacl/article/doi/10.1162/tacl_a_00502/113024/On-Decoding-Strategies-for-Neural-Text-Generators))
+* **Luca Disse**: *Exploring the Inductive Biases of Sparsity-Inducing Learning Algorithms for Language Modeling*
+* **Afra Amini**: *Causal Probing for Gender Differences in Contextual Word Representations* ([TACL Paper](https://arxiv.org/abs/2205.07043))
+* **Martina Forster**: *Search Errors in Morphological Inflection Generation Systems* ([EACL Paper](https://aclanthology.org/2021.eacl-main.118/))
+* **Stefan Lasov**: *Effects of Sparse Attention on Model Interpretability* ([EMNLP Paper](https://aclanthology.org/2021.acl-short.17.pdf))
+ -->
