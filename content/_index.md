@@ -37,18 +37,18 @@ sections:
       columns: '2'
       view: list
  
-  - block: collection
-    id: publications
-    content:
-      title: Publications
-      text:  __I do not keep this updated; see my [Google Scholar](https://scholar.google.com/citations?user=quJhNH8AAAAJ&hl=en) page for an up-to-date list of publications.__
-      filters:
-        folders:
-          - publications
-        exclude_featured: false
-    design:
-      columns: '2'
-      view: citation
+  # - block: collection
+  #   id: publications
+  #   content:
+  #     title: Publications
+  #     text:  __I do not keep this updated; see my [Google Scholar](https://scholar.google.com/citations?user=quJhNH8AAAAJ&hl=en) page for an up-to-date list of publications.__
+  #     filters:
+  #       folders:
+  #         - publications
+  #       exclude_featured: false
+  #   design:
+  #     columns: '2'
+  #     view: citation
   - block: markdown
     id: talks
     content:

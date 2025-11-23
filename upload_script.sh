@@ -2,12 +2,12 @@
 set -e
 
 rm -rf public
-git submodule add -f -b master https://github.com/cimeister/cimeister.github.io.git public
+git submodule add -f -b main https://github.com/cimeister/cimeister.github.io.git public
 
 printf "\033[0;32mDeploying updates to GitHub...\033[0m\n"
 
 # Build the project.
-hugo --gc
+hugo --gc -D -F
 
 # Go To Public folder
 cd public
@@ -23,7 +23,7 @@ fi
 git commit -m "$msg"
 
 # Push source and build repos.
-git push origin master
+git push -f origin main
 
 cd ..
 git add -A

@@ -5,8 +5,6 @@
 
 # Appearance
 appearance:
-  theme_day: my_theme
-  theme_night: minimal
   font: minimal
   font_size: L
 
@@ -33,7 +31,9 @@ customCSS:
 customSCSS:
   - "scss/custom.scss"
 # Localization
-
+params:
+  assets:
+    disableFingerprinting: true
 # Site header
 header:
   navbar:
