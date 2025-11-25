@@ -12,6 +12,7 @@ hugo --gc -D -F
 # Go To Public folder
 cd public
 
+vi .nojekyll
 # Add changes to git.
 git add -A
 

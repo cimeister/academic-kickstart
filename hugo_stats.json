@@ -34,6 +34,7 @@
       "p",
       "path",
       "polygon",
+      "pre",
       "script",
       "section",
       "span",
@@ -485,7 +486,7 @@
     ],
     "ids": [
       "TableOfContents",
-      "approximations-of-",
+      "acknowledgments",
       "blog",
       "card-title-1e561a159cb5690f0d34c7c5e304d5b4",
       "card-title-2628c9addc8a1408ba35b3f56a775dcf",
@@ -521,7 +522,6 @@
       "card-title-c7741858bab1081d61c6ed7729bc9402",
       "card-title-d3ee02af8f2bdab61924f6ff1a5ccad2",
       "card-title-fcc1466beb4f21bf703cea6e1bfbbca5",
-      "expected-complete-data-log-likelihood-under-observed-data-and-current-parameters",
       "fn:1",
       "fn:2",
       "fn:3",
@@ -537,17 +537,17 @@
       "hb-notification-container",
       "hide-button",
       "implementation-in-the-sentencepiece-library",
+      "inference",
       "intro-and-origins-of-this-blog-post",
       "learning-model-parameters",
       "moon",
       "nav-menu",
       "nav-toggle",
-      "observed-data-log-likelihood-and-jensens-inequality",
       "page-bg",
       "sec:background",
       "sec:gen_model",
+      "sec:pseudocode",
       "sec:unigram_em",
-      "sec:unigram_pruning",
       "section-collection",
       "section-resume-biography-3",
       "show-button",
@@ -557,7 +557,9 @@
       "talks",
       "the-unigramlm-algorithm",
       "top",
-      "what-you-came-here-for-unigramlm"
+      "what-you-came-here-for-unigramlm",
+      "why-look-at-unigramlm-now-and-not-just-make-bpe-better",
+      "why-this-blog-post"
     ]
   }
 }
