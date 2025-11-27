@@ -35,33 +35,29 @@ math: true
 toc: true
 
 ---
-**TL;DR**:  This post is my attempt to write down the UnigramLM tokenization algorithm cleanly and explicitly because
-the original paper does not provide such a derivation and I believe there are  potentiall valuable insights from understanding the theoretical foundations of the method. In this post, we'll formalize the unigram generative
-model, derive the EM updates, explain why pruning is needed (and how it's done), and point out the
-spots where the practical implementation quietly diverges (and the implications that has for the mathematical models). 
+**TL;DR**:  This post is my attempt to write down the UnigramLM tokenization algorithm cleanly and explicitly because, well, I still haven't found such a derivation and I think understanding the theory behind the method could help us make it better. I'll formalize the generative model on which the algorithm's assumptions [BETTER WORD/TERM] are based, derive the EM updates, explain why pruning is needed (and how it's done), and point out the
+spots where the practical implementation defined by the SentencePiece library diverges from the pretty mathematical models. Hopefully, this post points out some interesting potential extensions/revisions to the current implementation. 
 
 ### Intro and origins of this blog post
 *(feel free to [skip](#sec:background) this section)*
 
-These days, tokenization is basically synonymous with Byte-pair Encoding (BPE). If you ask someone "do you know how tokenization works?", there's a decent chance you'll get an answer like: "Yeah yeah, I know BPE.""  But there's this other tokenizer sitting right next to BPE in practice: UnigramLM
-(the SentencePiece "unigram" model). On paper it looks totally different. 
+These days, tokenization is basically synonymous with Byte-pair Encoding (BPE). If you ask someone "do you know how tokenization works?", there's a decent chance you'll get an answer like: "Yeah yeah, I know BPE."  But tokenization != BPE. There are numerous (arguably better motivated) algorithms one could use for segmenting text into tokens. This post focuses on UnigramLM (the SentencePiece "unigram" model), which is a pretty far departure from the BPE approach... 
 
 #### Why look at UnigramLM now (and not just "make BPE better")?
-Recent work keeps showing that tokenizers themselves can induce [unfairness](https://arxiv.org/abs/2305.15425) and [uneven performance](https://arxiv.org/abs/2305.17179) across languages, dialects, and writing systems. A lot of the community response has (reasonably!) focused on patching BPE: adding constraints, regularizers, or parity-aware merges. Those are valuable, but there's a risk in treating "tokenization = BPE + tweaks" as the whole design space. UnigramLM is a widely deployed alternative (T5, XLNet), and it comes from a fundamentally different modeling viewpoint. Instead of greedily merging pairs, it says: "let's uncover latent tokens and treat tokenization like inference." At least to me, that framing feels a lot more linguistically sane (or, at minimum, less like we're playing subword Tetris). Taking that viewpoint seriously could open different and maybe cleaner directions for addressing tokenizer-induced unfairness — not by iterating on one algorithm forever, but by re-examining the assumptions we bake into tokenization in the first place.
+Recent work keeps showing that tokenizers themselves can induce [unfairness](https://arxiv.org/abs/2305.15425) and [uneven performance](https://arxiv.org/abs/2305.17179) across languages, dialects, and writing systems. A lot of the community response has (reasonably!) focused on patching BPE: adding constraints, regularizers, or parity-aware merges. Those are valuable, but there's a risk in treating "tokenization = BPE + tweaks" as the whole design space. UnigramLM is a widely deployed alternative (T5, XLNet), and it comes from a fundamentally different modeling viewpoint. Instead of greedily merging pairs, it says: "let's uncover latent tokens and treat tokenization like inference." At least to me, that framing feels a lot more linguistically sane (or, at minimum, less like we're playing subword Tetris). Taking that viewpoint seriously could open different and maybe cleaner directions for addressing tokenizer-induced unfairness---not by iterating on one algorithm forever, but by re-examining the assumptions we bake into tokenization in the first place.
 
 #### Why this blog post
 
 With the above motivation in mind, I figured I should actually understand the algorithm. 
-So I did what everyone does: I went to the [original 2018 paper](https://aclanthology.org/P18-1007/). That... didn't get me very far. So then I went to the SentencePiece repo, hoping I could reconstruct the missing pieces from the code. After a brief flashback while staring at the C++ implementation to the terror of my undergraduate CS classes, I bailed on that approach too. Then I thought maybe the missing explanation was hiding in the HuggingFace documentation — but let's just say that rabbit hole ended like this:
+So I did what everyone does: I went to the [original 2018 paper](https://aclanthology.org/P18-1007/). That... didn't get me very far. So then I went to the SentencePiece repo, hoping I could reconstruct the missing pieces from the code. After a brief flashback while staring at the C++ implementation to the terror of my undergraduate CS classes, I bailed on that approach too. Then I thought maybe the missing explanation was hiding in the HuggingFace documentation. But let's just say that rabbit hole ended like this:
 
 
 > *The HuggingFace documentation* [on UnigramLM] *describes a
-> tokeniser that doesn’t exist. It should not be relied on as an
-> explanation for UnigramLM, because it doesn’t even come close.*  
+> tokeniser that doesn't exist. It should not be relied on as an
+> explanation for UnigramLM, because it doesn't even come close.*  
 > –Claude
 
 The original UnigramLM paper gives a nice high-level story, and the code clearly works in practice, but I couldn't find a single place that actually spells out the full generative model, why the algorithm is mathematically sound, or how all the little "engineering details" (like pruning and vocabulary initialization) fit into that picture. This post is my attempt to provide an approachable but rigorous walkthrough of UnigramLM as a probabilistic model, showing why EM is a reasonable tool here, what the posterior over segmentations actually looks like, and how the SentencePiece-style implementation approximates/diverges from all of this in practice. If you've ever felt that UnigramLM is "clear enough to use, but not clear enough to explain on a whiteboard," my hope is that this takes you the rest of the way to really understanding it, and maybe even extending it. Because at least I think its a pretty cool algorithm that deserves some of BPE's limelight. 
-
 
 
 
@@ -94,18 +90,16 @@ of *merge* pairs
 $\boldsymbol{\mu}=\langle({v}_1, {v}_1'),({v}_2, {v}_2'), \dots \rangle$
 and the algorithm for learning $\boldsymbol{\mu}$. At inference,
 starting from the representation of ${\mathbf{{s}}}$ as just a sequence
-of symbols from the base vocabulary ${\Sigma}$,
-${h}_{\boldsymbol{\mu}}$ goes through the text
-$i=1, \dots |\boldsymbol{\mu}|$ times. At step $i$, it replaces all
-co-occurrences of the pair $({v}_i, {v}_i')$ with a new merged token
-(typically, of the form ${v}_i\circ{v}_i'$).[^3]
+of symbols from the base vocabulary ${\Sigma}$, ${h}_{\boldsymbol{\mu}}$
+goes through the text $i=1, \dots |\boldsymbol{\mu}|$ times. At step
+$i$, it replaces all co-occurrences of the pair $({v}_i, {v}_i')$ with a
+new merged token (typically, of the form ${v}_i\circ{v}_i'$).[^3]
 
 Importantly, we assume that ${\mathbf{{s}}}$ can be reconstructed from
 ${\mathbf{{v}}}$ via a **detokenization function**
-${g}: {\mathcal{V}}^* \rightarrow {\Sigma}^*$; often ${g}:$ is a
-simple mapping like string concatenation with some special symbol
-handling, e.g.,
-${g}({\mathbf{{v}}}) = {v}_{1}\circ\dots \circ {v}_{{m}}$. In what
+${g}: {\mathcal{V}}^* \rightarrow {\Sigma}^*$; often ${g}:$ is a simple
+mapping like string concatenation with some special symbol handling,
+e.g., ${g}({\mathbf{{v}}}) = {v}_{1}\circ\dots \circ {v}_{{m}}$. In what
 follows, we consider ${g}$ fixed and treat it as part of the model
 specification. All probabilities over strings and segmentations are
 defined with respect to this fixed choice of ${g}$. Notably, given just
@@ -116,6 +110,7 @@ ${g}$ is generally non-injective. We use
 ${\mathcal{T}}_{\mathcal{V}}({\mathbf{{s}}}) \mathrel{\stackrel{\textnormal{ def}}{=}}{g}^{-1}({\mathbf{{s}}}) = \{{\mathbf{{v}}}\in{\mathcal{V}}^* : {g}({\mathbf{{v}}}) = {\mathbf{{s}}}\}$
 to refer to the set of all valid token sequences that produce
 ${\mathbf{{s}}}$, i.e., the set-valued inverse of ${g}$.
+
 
 **Example 1** (A concrete example of the non-injectivity of $g$.).
 *Consider a toy string ${\mathbf{{s}}}= hat$ and a small
@@ -318,18 +313,17 @@ illustrates that the length prior can in principle have a non-trivial
 affect on the inference result.*
 :::
 
-For example, if $P({M}=3) \gg P({M}=1)$, the product of three piece
-probabilities (which should be fairly small) could win out over the
-probability of a single piece probability even if the product was
-originally much smaller. Consequently, a theoretically sound
-implementation of the method would define and keep this prior for
-inference, as in Eq. 6. Typically, though, this term is ignored (or at
-least sequence length probabilities are assumed to be constant for all
-valid lengths). Unless
-otherwise specified, when talking about inference, we will assume use of
-no length term is used for faithfulness to the original
-algorithm. It could potentially be interesting to look into the effects
-of this design choice!
+SentencePiece (and all other implementations of UnigramLM) effectively
+assume the length prior term is flat (i.e., sequence length
+probabilities are assumed to be constant for all valid lengths) and
+drops it, so in practice UnigramLM inference is usually done with the
+length-free objective (last line in Eq. 6). Unless otherwise specified, when
+talking about inference, we will assume use of
+this objective for faithfulness to the original
+algorithm. I'm spelling this out because it's a silent approximation and
+it could potentially be interesting to look into the effects of this
+design choice!
+
 
 The true parameters of the generative process ${\boldsymbol{\phi}}$ are
 unknown, however; this includes both the piece probabilities
@@ -346,15 +340,15 @@ log-likelihood of our data. Under the UnigramLM assumptions about the
 generative process of strings, our "complete" dataset actually consists
 of $({\mathbf{{s}}},{\mathbf{{v}}})$ pairs, i.e., strings and the
 sequence of tokens that produced them. Thus, our complete dataset looks
-like $\mathcal{X} = \{({\mathbf{{s}}}_i,{\mathbf{{v}}}_i)\}_{i=1}^K$
-and the complete-data log likelihood is defined as: $$
+like $\mathcal{X} = \{({\mathbf{{s}}}_i,{\mathbf{{v}}}_i)\}_{i=1}^K$ and
+the complete-data log likelihood is defined as: $$
 \begin{aligned}
     {\mathcal{L}}(\mathcal{X}; {\boldsymbol{\phi}}) &\mathrel{\stackrel{\textnormal{ def}}{=}}\log\prod_{i=1}^KP({\mathbf{S}}={\mathbf{{s}}}_i, {\mathbf{V}}={\mathbf{{v}}}_i;{\boldsymbol{\phi}})\\\ 
     &= \sum_{i=1}^K\log P({\mathbf{S}}={\mathbf{{s}}}_i, {\mathbf{V}}={\mathbf{{v}}}_i;{\boldsymbol{\phi}})
 \end{aligned}
 \tag{7}
 $$
-Eq. 7 is typically referred to as the
+Eq. (7) is typically referred to as the
 *complete* data log-likelihood. If we actually had this complete data
 (and we knew ${\mathcal{V}}$), we would simply find the
 ${\boldsymbol{\phi}}$ that maximizes
@@ -367,7 +361,8 @@ ${\mathcal{T}}_{{\mathcal{V}}}({\mathbf{{s}}})$ and we don't even know
 ${\mathcal{V}}$!). So, we can instead try to maximize our *observed*
 data log-likelihood, i.e., the likelihood of just our strings under our
 data-generating distribution defined in
-Eq. (4). Given our relationships from earlier, we can define this likelihood in terms of
+Eq. (4). Given our "useful" relationships in
+from earlier, we can define this likelihood in terms of
 ${\boldsymbol{\phi}}$: $$
 \begin{aligned}
     {\mathcal{L}}({\mathcal{C}}; {\boldsymbol{\phi}}) &\mathrel{\stackrel{\textnormal{ def}}{=}}\log\prod_{i=1}^KP({\mathbf{S}}={\mathbf{{s}}}_i;{\boldsymbol{\phi}})\\\ 
@@ -386,12 +381,23 @@ directly due to the log--sum structure. Luckily, the
 expectation-maximization (EM) algorithm provides us a route for working
 with this situation.
 
-#### The Expectation-Maximization Algorithm in the Context of UnigramLM {#sec:unigram_em}
+### The Expectation-Maximization Algorithm in the Context of UnigramLM {#sec:unigram_em}
 
 EM was designed for exactly the use case where wish to get MLE estimates
 for a data-generating process in which only part of the data is
-unobserved. Formally, the EM algorithm uses Jensen's inequality to
-relate the *expected value* of the complete data log-likelihood to the
+unobserved.
+
+**TL;DR of the application of the EM algorithm to UnigramLM**: EM is an
+iterative algorithm for approximating MLE estimates. The E step computes
+the expected complete data log-likelihood under current beliefs about
+model parameters (in our case, ${{\boldsymbol{\phi}}^{(n)}}$); this
+quantity is standing in for observed data log-likelihood, which is a
+much more difficult quantity to compute. The M step then solves for the
+free parameters (in our case, ${\boldsymbol{\phi}}$) that maximize this
+quantity, and then updates our current beliefs to the new quantity.
+
+In more detail now: the EM algorithm uses Jensen's inequality to relate
+the *expected value* of the complete data log-likelihood to the
 *observed* data log-likelihood, i.e., relating the expected value of
 Eq. (7) to
 Eq. (8). This is exactly the connection made
@@ -404,7 +410,8 @@ Let ${{\boldsymbol{\phi}}^{(n)}}$ denote our current belief about what
 the unigram parameters might be (more discussion on how we can
 initialize this distribution coming up!). For now, we will assume that
 the vocabulary is fixed. These random variables adhere to our original
-definitions from earlier. Note that when we use simply
+definitions in [4.1](#sec:gen_model){reference-type="ref+label"
+reference="sec:gen_model"}. Note that when we use simply
 ${\boldsymbol{\phi}}$, we are referring to the distributions (and
 corresponding random variables) induced by a generic
 ${\boldsymbol{\phi}}$; these are the entities for which our parameters
@@ -436,7 +443,7 @@ evaluated using the candidate parameters ${\boldsymbol{\phi}}$.
 Now we will show how this quantity relates to the observed data
 log-likelihood.
 
-**Observed data log-likelihood and Jensen's inequality.** 
+#### Observed data log-likelihood and Jensen's inequality.
 
 We start with a reminder of Jensen's inequality, applied to our
 definition of $P({\mathbf{S}}={\mathbf{{s}}};{\boldsymbol{\phi}})$. For
@@ -444,13 +451,14 @@ any valid distribution probability $P({\mathbf{V}}={\mathbf{{v}}})$,
 Jensen's inequality tells us $$
 \begin{aligned}
 \log P({\mathbf{S}}={\mathbf{{s}}};{\boldsymbol{\phi}})
-&= \log \sum_{{\mathbf{{v}}}\in {\mathcal{T}}_{{\mathcal{V}}}({\mathbf{{s}}})} P({\mathbf{V}}={\mathbf{{v}}})\frac{P({\mathbf{V}}={\mathbf{{v}}};{\boldsymbol{\phi}})}{P({\mathbf{V}}={\mathbf{{v}}})}\\\ 
-&\ge \sum_{{\mathbf{{v}}}\in {\mathcal{T}}_{{\mathcal{V}}}({\mathbf{{s}}})} P({\mathbf{V}}={\mathbf{{v}}})\log \frac{P({\mathbf{V}}={\mathbf{{v}}};{\boldsymbol{\phi}})}{P({\mathbf{V}}={\mathbf{{v}}})}
+&= \log \sum_{{\mathbf{{v}}}\in {\mathcal{T}}_{{\mathcal{V}}}({\mathbf{{s}}})} P({\mathbf{V}}={\mathbf{{v}}})\,\frac{P({\mathbf{V}}={\mathbf{{v}}};{\boldsymbol{\phi}})}{P({\mathbf{V}}={\mathbf{{v}}})}\\\ 
+&\ge \sum_{{\mathbf{{v}}}\in {\mathcal{T}}_{{\mathcal{V}}}({\mathbf{{s}}})} P({\mathbf{V}}={\mathbf{{v}}})\,\log \frac{P({\mathbf{V}}={\mathbf{{v}}};{\boldsymbol{\phi}})}{P({\mathbf{V}}={\mathbf{{v}}})}
 \end{aligned}
-$$ If we choose $P({\mathbf{V}}={\mathbf{{v}}})$ to be 
+$$ If we choose $P({\mathbf{V}}={\mathbf{{v}}})$ to be
 $P({\mathbf{V}}={\mathbf{{v}}}\mid {\mathbf{S}}= {\mathbf{{s}}};{{\boldsymbol{\phi}}^{(n)}})$---the
-posterior under our current parameter beliefs for a fixed ${\mathbf{{s}}}$---and apply
-this to our definition of the observed data log-likelihood from
+posterior under our current parameter beliefs for a fixed
+${\mathbf{{s}}}$---and apply this to our definition of the observed data
+log-likelihood from
 Eq. (8), we get $$
 \begin{aligned}
 {\mathcal{L}}&({\mathcal{C}};{\boldsymbol{\phi}})= \sum_{i=1}^K \log\sum_{{\mathbf{{v}}}\in{\mathcal{T}}_{{\mathcal{V}}}({\mathbf{{s}}}_i)} P({\mathbf{V}}={\mathbf{{v}}};{\boldsymbol{\phi}})\\\ 
@@ -459,8 +467,7 @@ Eq. (8), we get $$
 &= \sum_{i=1}^K\sum_{{\mathbf{{v}}}\in {\mathcal{T}}_{{\mathcal{V}}}({\mathbf{{s}}}_i)}P({\mathbf{V}}={\mathbf{{v}}}\mid {\mathbf{S}}={\mathbf{{s}}}_i;{{\boldsymbol{\phi}}^{(n)}})
 \log P({\mathbf{S}}={\mathbf{{s}}}_i, {\mathbf{V}}={\mathbf{{v}}};{\boldsymbol{\phi}})\nonumber\\\ 
 & \qquad\qquad\qquad\qquad-\sum_{i=1}^K\sum_{{\mathbf{{v}}}\in {\mathcal{T}}_{{\mathcal{V}}}({\mathbf{{s}}}_i)}P({\mathbf{V}}={\mathbf{{v}}}\mid {\mathbf{S}}={\mathbf{{s}}}_i;{{\boldsymbol{\phi}}^{(n)}})\log P({\mathbf{V}}={\mathbf{{v}}}\mid {\mathbf{S}}={\mathbf{{s}}}_i;{{\boldsymbol{\phi}}^{(n)}})\\\ 
-&= \underbrace{\sum_{i=1}^K\underset{{\mathbf{{v}}}\sim {\mathbf{V}}\mid {\mathbf{S}}={\mathbf{{s}}}_i;{{\boldsymbol{\phi}}^{(n)}}}{\mathop{\mathrm{\mathbb{E}}}}\big[\log P({\mathbf{S}}={\mathbf{{s}}}_i, {\mathbf{V}}={\mathbf{{v}}};{\boldsymbol{\phi}})\big]}_{{\mathcal{Q}}({\boldsymbol{\phi}};{{\boldsymbol{\phi}}^{(n)}})}
-+\sum_{i=1}^K{\mathrm{H}}\big({\mathbf{V}}\mid {\mathbf{S}}={\mathbf{{s}}}_i;{{\boldsymbol{\phi}}^{(n)}}\big)
+&= \underbrace{\sum_{i=1}^K\underset{{\mathbf{{v}}}\sim {\mathbf{V}}\,\mid\, {\mathbf{S}}={\mathbf{{s}}}_i;{{\boldsymbol{\phi}}^{(n)}}}{\mathop{\mathrm{\mathbb{E}}}}\big[\log P({\mathbf{S}}={\mathbf{{s}}}_i, {\mathbf{V}}={\mathbf{{v}}};{\boldsymbol{\phi}})\big]}_{{\mathcal{Q}}({\boldsymbol{\phi}};{{\boldsymbol{\phi}}^{(n)}})} + \sum_{i=1}^K\underbrace{\underset{{\mathbf{{v}}}\sim {\mathbf{V}}\,\mid\, {\mathbf{S}}={\mathbf{{s}}}_i;{{\boldsymbol{\phi}}^{(n)}}}{\mathop{\mathrm{\mathbb{E}}}}\big[\log P({\mathbf{V}}={\mathbf{{v}}}\mid {\mathbf{S}}={\mathbf{{s}}}_i;{{\boldsymbol{\phi}}^{(n)}})\big]}_{{\mathrm{H}}\big({\mathbf{V}}\,\mid \,{\mathbf{S}}={\mathbf{{s}}}_i;{{\boldsymbol{\phi}}^{(n)}}\big)}
 \\\ 
 &\geq {\mathcal{Q}}({\boldsymbol{\phi}};{{\boldsymbol{\phi}}^{(n)}})
 \end{aligned}
@@ -486,20 +493,18 @@ ${\mathcal{Q}}({\boldsymbol{\phi}};{{\boldsymbol{\phi}}^{(n)}})$. And
 this is the basis the EM algorithm, which iteratively updates
 ${\boldsymbol{\phi}}$ by choosing the value of it that maximizes
 ${\mathcal{Q}}({\boldsymbol{\phi}};{{\boldsymbol{\phi}}^{(n)}})$ until
-convergence.
+convergence. I'll omit the proof of why EM should converge (for a fixed
+${\mathcal{V}}$) since, well, it's in a lot of ML textbooks (you know,
+those ones we all swear we'll read cover-to-cover someday\...). But
+after all those derivations, I do think it's helpful to look at our
+ideal and actual objectives side-by-side, just to see what the
+difference is:
 
-So now that we've gone through all the parts, here's a quick recap of
-the EM algorithm: it's an iterative algorithm for approximating MLE
-estimates. The E step computes the expected complete data log-likelihood
-under current beliefs about model parameters (in our case,
-${{\boldsymbol{\phi}}^{(n)}}$); this quantity is standing in for
-observed data log-likelihood, which is a much more difficult quantity to
-compute. The M step then solves for the free parameters (in our case,
-${\boldsymbol{\phi}}$) that maximize this quantity, and then updates our
-current beliefs to the new quantity. I'll omit the proof of why this
-should converge (for a fixed ${\mathcal{V}}$) since, well, it's in a lot
-of ML textbooks (you know, those ones we all swear we'll read
-cover-to-cover someday\...)
+$$
+\underbrace{\sum_{i=1}^K \log\sum_{{\mathbf{{v}}}\in{\mathcal{T}}_{{\mathcal{V}}}({\mathbf{{s}}}_i)} P({\mathbf{V}}={\mathbf{{v}}};{\boldsymbol{\phi}})}_{\text{objective we'd ideally be maximizing }} \qquad\qquad \underbrace{\sum_{i=1}^K\sum_{{\mathbf{{v}}}\in {\mathcal{T}}_{{\mathcal{V}}}({\mathbf{{s}}}_i)}P({\mathbf{V}}={\mathbf{{v}}}\mid {\mathbf{S}}={\mathbf{{s}}}_i;{{\boldsymbol{\phi}}^{(n)}})
+\log P({\mathbf{V}}={\mathbf{{v}}};{\boldsymbol{\phi}})}_{\text{objective we maximize iteratively with EM}}
+$$
+
 
 ### The UnigramLM Algorithm
 
@@ -652,60 +657,66 @@ $$
 
     iii.  **Pruning:** After applying the above steps, the vocabulary
         itself will not have changed (only the per-piece probabilities
-        are updated). We can optionally prune some subset of pieces,
-        creating a new ${\mathcal{V}}_{n+1}$. For example, if the the
-        initial vocabulary consists of 100 pieces and our desired final
-        vocabulary size is 30 pieces, one might remove the 10 least
-        "important" pieces after each of the first seven EM iterations.
-        Following pruning, the remaining probabilities in
-        ${\boldsymbol{\phi}}^{(n+1)}$ are renormalized to form a valid
-        distribution over ${\mathcal{V}}_{n+1}$. We elaborate more on
-        this process (and how we determine token "importance") below.
-
-
-**Strategies for pruning tokens.** {#sec:unigram_pruning}
-
-Because the initial vocabulary ${\mathcal{V}}_0$ is typically
-over-complete (often $|{\mathcal{V}}_0| \gg |{\mathcal{V}}|$),
-UnigramLM applies a pruning step *within* the EM iterations to gradually
-reduce vocabulary size. At iteration $n$, after we've determined our
-updated parameters ${\boldsymbol{\phi}}^{(n+1)}$, the algorithm removes
-tokens whose absence leads to the smallest decrease in (our proxy for)
-observed data log-likelihood. Intuitively, we prune tokens that
-contribute least to explaining the data under the current model.
-
-Formally, let
-$\bar{{\mathcal{Q}}}({\boldsymbol{\phi}}^{(n+1)};{{\boldsymbol{\phi}}^{(n)}})$
-be our expected complete data log-likelihood under updated model
-parameters (albeit still under the segmentations according to
-${{\boldsymbol{\phi}}^{(n)}}$). We define the contribution (or "loss")
-associated with token ${v}$ as the change (typically a decrease) in the
-corpus log-likelihood when ${v}$ is removed from the model:
-$$
-    {L}({v})
-    \mathrel{\stackrel{\textnormal{ def}}{=}}
-    \bar{{\mathcal{Q}}}({\boldsymbol{\phi}}^{(n+1)};{{\boldsymbol{\phi}}^{(n)}}) 
-    -
-    \bar{{\mathcal{Q}}}({\boldsymbol{\phi}}^{(n+1)}_{-{v}};{{\boldsymbol{\phi}}^{(n)}_{-{v}}}),
+        are updated). Because the initial vocabulary ${\mathcal{V}}_0$
+        is typically over-complete (often
+        $|{\mathcal{V}}_0| \gg |{\mathcal{V}}|$), we want to trim it
+        down. UnigramLM achieves this by applying a pruning step
+        *within* the EM iterations. Explicitly, at step $n$, it removes
+        $k_n$ of the least "important" pieces, leading to a new
+        ${\mathcal{V}}_{n+1}$. Following pruning, the remaining
+        probabilities in ${\boldsymbol{\phi}}^{(n+1)}$ are renormalized
+        to form a valid distribution over ${\mathcal{V}}_{n+1}$. This
+        pruning is done until the vocabulary reaches the desired size. 
+        Formally, let
+        $\bar{{\mathcal{Q}}}({\boldsymbol{\phi}}^{(n+1)};{{\boldsymbol{\phi}}^{(n)}})$
+        be our expected complete data log-likelihood under updated model
+        parameters (albeit still under the segmentations according to
+        ${{\boldsymbol{\phi}}^{(n)}}$). The algorithm removes tokens
+        whose absence leads to the smallest decrease in (our proxy for)
+        observed data log-likelihood. Intuitively, we prune tokens that
+        contribute least to explaining the data under the current model.
+        We define the contribution (or "loss") associated with token
+        ${v}$ as the change (typically a decrease) in the corpus
+        log-likelihood when ${v}$ is removed from the model:
+        $${L}({v})
+            \mathrel{\stackrel{\textnormal{ def}}{=}}
+            \bar{{\mathcal{Q}}}({\boldsymbol{\phi}}^{(n+1)};{{\boldsymbol{\phi}}^{(n)}}) 
+            -
+            \bar{{\mathcal{Q}}}({\boldsymbol{\phi}}^{(n+1)}_{-{v}};{{\boldsymbol{\phi}}^{(n)}_{-{v}}}),
 \tag{15}
 $$
+        The notation ${{\boldsymbol{\phi}}^{(n)}_{-{v}}}$ in
+        Eq. (15) refers to the unigram distribution
+        obtained from ${{\boldsymbol{\phi}}^{(n)}}$ by removing ${v}$
+        from its support and renormalizing the remaining probabilities.
+        The corresponding string-level distribution is thus identical to
+        the one induced by ${{\boldsymbol{\phi}}^{(n)}}$, except that
+        all segmentations containing ${v}$ are assigned zero probability
+        and individual piece probabilities are renormalized over
+        ${\mathcal{V}}\setminus \{{v}\}$ (this logic also applies to
+        ${\boldsymbol{\phi}}^{(n+1)}_{-{v}}$). After computing
+        ${L}({v})$ for all ${v}\in {\mathcal{V}}_n$, we remove the $k_n$
+        tokens with the smallest losses, where $k_n$ is a hyperparameter
+        chosen such that after some number of iterations, we ultimately
+        reach our desired vocabulary size.[^6] Intuitively, this can be
+        seen as removing the tokens whose removal incurs the *least*
+        penalty on the corpus log-likelihood. Notably, computing
+        $\bar{{\mathcal{Q}}}({\boldsymbol{\phi}}^{(n+1)}_{-{v}};{{\boldsymbol{\phi}}^{(n)}_{-{v}}})$
+        in Eq. (15) is very computationally expensive
+        since it requires a separate forward--backward pass over the
+        corpus. We discuss some approximations to ${L}({v})$ in the
+        following section.
 
-The notation ${{\boldsymbol{\phi}}^{(n)}_{-{v}}}$ in
-Eq. (15) refers to the unigram distribution obtained
-from ${{\boldsymbol{\phi}}^{(n)}}$ by removing ${v}$ from its support
-and renormalizing the remaining probabilities. The corresponding
-string-level distribution is thus identical to the one induced by
-${{\boldsymbol{\phi}}^{(n)}}$, except that all segmentations containing
-${v}$ are assigned zero probability and individual piece probabilities
-are renormalized over ${\mathcal{V}}\setminus \{{v}\}$ (this logic also
-applies to ${\boldsymbol{\phi}}^{(n+1)}_{-{v}}$).
+
+#### Approximations of ${L}$.
 
 Computing
 $\bar{{\mathcal{Q}}}({\boldsymbol{\phi}}^{(n+1)}_{-{v}};{{\boldsymbol{\phi}}^{(n)}_{-{v}}})$
-in Eq. 15 for a given ${v}$ generally requires a
+in [\[eq:tokenloss\]](#eq:tokenloss){reference-type="ref+label"
+reference="eq:tokenloss"} for a given ${v}$ generally requires a
 separate forward--backward pass over the corpus. This is because
 disallowing the use of ${v}$ in segmentations changes both the set of
-valid paths and the total probability of those paths. [^6] The new
+valid paths and the total probability of those paths.[^7] The new
 per-string marginal probabilities (and expected token counts) under
 ${\boldsymbol{\phi}}^{(n+1)}_{-{v}}$. cannot, in general, be recovered
 from forward/backward marginals computed under
@@ -719,29 +730,12 @@ any reasonable size. For example, if our initial vocabulary is a mere
 100$k$, then computing per-piece losses would require 100$k$ forward
 passes of the corpus on its own. In practice, approximations that reuse
 the statistics computed from the current EM iteration are done. We
-discuss those next.
-
-After computing ${L}({v})$ for all ${v}\in {\mathcal{V}}_n$, we remove
-the $k_n$ tokens with the smallest losses. Intuitively, this can be
-seen as removing the tokens whose removal incurs the *least* penalty on
-the corpus log-likelihood. The pruning rate $k_n$ is a hyperparameter
-of the algorithm. It is often chosen such that the target vocabulary
-size $|{\mathcal{V}}|$ is reached after a fixed number of pruning
-iterations $J$, e.g., $$
-    k_n = \min\left(
-        \frac{1}{J}\bigl(|{\mathcal{V}}_0| - |{\mathcal{V}}|\bigr),
-         \max\bigl(0, |{\mathcal{V}}_n| - |{\mathcal{V}}|\bigr)
-    \right).
-\tag{16}
-$$
-
-**Approximations of ${L}$.**
-
-To avoid the need to resegment the corpus to compute each ${v}$'s loss,
-several approximations can be used to compute per-piece losses. A simple
-approximation would be to use the log-likelihood contribution of a token
-as its loss, i.e., $\widehat{L}({v}) \approx
-\widehat{c}_{{v}}({\mathcal{C}};{{\boldsymbol{\phi}}^{(n)}})\log {P({V}={v};{{\boldsymbol{\phi}}^{(n)}})}$.
+discuss those next. To avoid the need to resegment the corpus to compute
+each ${v}$'s loss, several approximations can be used to compute
+per-piece losses. A simple approximation would be to use as a token's
+loss its contribution to corpus log-likelihood, i.e.,
+$\widehat{L}({v}) \approx
+\widehat{c}_{{v}}({\mathcal{C}};{\boldsymbol{\phi}}^{(n+1)})\log {P({V}={v};{{\boldsymbol{\phi}}^{(n)}})}$.
 An arguably more sound approximation (and the one used by the original
 implementation of UnigramLM found in the SentencePiece library) is to
 look at the change in corpus log-likelihood when simply replacing ${v}$
@@ -859,53 +853,71 @@ tried to run the algorithm with the real, brute-force loss computation).
 ## Implementation in the SentencePiece library
 
 In practice, the UnigramLM algorithm as we know it is largely defined by
-the public SentencePiece implementation, since Kudo (2018) give
+the public SentencePiece implementation, since @kudo-2018-subword give
 only a high-level description and leave many engineering choices
 under-specified. The library makes a number of concrete design decisions
-that go beyond the abstract EM + pruning picture above. Importantly, some of these
-actually change the underlying model described earlier.
+that go beyond the abstract EM + pruning picture above.
 
-First, SentencePiece runs a fixed EM+prune schedule rather than
-iterating EM to convergence on a fixed vocabulary. Each outer iteration
-consists of a small fixed number of EM "sub-iterations" (typically two),
-after which the vocabulary is pruned by a fixed shrinking factor, and
-training stops once the target vocabulary size is reached. Second, the
-seed vocabulary is not "all substrings up to length $L$": SentencePiece
-uses an Enhanced (Extended) Suffix Array procedure to mine a large
-lexicon of frequent substrings from the corpus (on the order of $10^6$
-pieces by default), subject to length and frequency thresholds. Pruning
-is performed as described above in the approximations section, i.e., a
-piece's loss is approximated by assuming that the removed piece's
-probability mass transfers to its best alternative Viterbi segmentation. Third, 
-SentencePiece does not use the plain MLE
-M-step update from
+## Text Preprocessing.
+
+Arguably some of the more critical design choices to be aware of are
+those pertaining to normalization and pretokenization, as these change
+which segmentations are feasible. SentencePiece advertises that it does
+not apply any pretokenization, but I think that depends on your
+definition of pretokenization\... By default the library, collapses
+whitespace, inserts a dummy-prefix marker, and treats whitespace (and
+script/number boundaries) as explicit segmentation cues, i.e., as
+markers that can be suffixes or prefixes of pieces, but that pieces
+cannot cross. Most of these behaviors can be disabled via training flags
+but the fact that they're used is not well advertised. It also applies
+NFKC normalization by default.
+
+#### Initialization.
+
+The seed vocabulary is not "all substrings up to length $L$":
+SentencePiece uses a version of the Enhanced (Extended) Suffix Array
+procedure to mine a large lexicon of frequent substrings from the corpus
+(on the order of $10^6$ pieces by default), subject to length and
+frequency thresholds.
+
+#### EM Updates.
+
+SentencePiece runs a fixed EM+prune schedule rather than iterating EM to
+convergence on a fixed vocabulary. Each outer iteration consists of a
+small fixed number of EM "sub-iterations" (typically two), after which
+the vocabulary is pruned by a fixed shrinking factor, and training stops
+once the target vocabulary size is reached. SentencePiece does not use
+the plain MLE M-step update from
 Eq. (14). Instead, it adopts a Variational Bayesian
 approach with a Dirichlet prior, replacing expected counts with their
 [digamma-transformed counterparts](https://github.com/google/sentencepiece/blob/336900241c4943ae1e5f844b18292f532b3a21c7/src/unigram_model_trainer.cc#L390):
 ${\phi^{(n+1)}_{v}}\propto\exp(\Psi(\widehat{c}_{{v}}({\mathcal{C}};{{\boldsymbol{\phi}}^{(n)}})+\alpha_{v}))$.
-While it might not seem like a large change to the original update rule, this choice is implicitly adding a
-prior belief about the the number of counts we should observe for each token. 
-Explicitly, we're now calculating the geometric mean of a
-posterior Dirichlet distribution, where we're added in the belief token ${v}$ will be observed $\alpha_{v}$  times. 
-Notably, SentencePiece uses an improper Haldane prior ($\alpha_{v}= 0$
-for all ${v}\in{\mathcal{V}}$). This choice essentially has the opposite
-effect of performing standard additive smoothing: it's always the case
-that $\exp(\psi(x)) < x$, however, for small $x$ (rare tokens), the
-relative "discount" is significantly larger. It thus acts as a
-regularizer that disproportionately penalizes tokens with low expected
-counts, sending their assigned probability mass closer to zero.  This is done on top of a [pre-pruning step](https://github.com/google/sentencepiece/blob/336900241c4943ae1e5f844b18292f532b3a21c7/src/unigram_model_trainer.cc#L381) for tokens whose expected counts are below a certain threshold. 
+While it might not seem like a large change to the original update rule,
+this choice is implicitly adding a prior belief about the the number of
+counts we should observe for each token. Explicitly, we're now
+calculating the geometric mean of a posterior Dirichlet distribution,
+where we're added in the belief token ${v}$ will be observed
+$\alpha_{{v}}$ times. Notably, SentencePiece uses an improper Haldane
+prior ($\alpha_{v}= 0$ for all ${v}\in{\mathcal{V}}$). This choice
+essentially has the opposite effect of performing standard additive
+smoothing: it's always the case that $\exp(\psi(x)) < x$, however, for
+small $x$ (rare tokens), the relative "discount" is significantly
+larger. It thus acts as a regularizer that disproportionately penalizes
+tokens with low expected counts, sending their assigned probability mass
+closer to zero. This is done on top of a [pre-pruning step](https://github.com/google/sentencepiece/blob/336900241c4943ae1e5f844b18292f532b3a21c7/src/unigram_model_trainer.cc#L381) for tokens whose expected counts are below a certain threshold. 
 
+#### Pruning.
 
-
-Arguably some of the more critical design choices to be aware of are
-those pertaining to normalization and pretokenization, as these change
-which segmentations are feasible. By default it applies NFKC
-normalization, collapses whitespace, inserts a dummy-prefix marker, and
-treats whitespace (and often script/number boundaries) as explicit
-segmentation cues, i.e., as markers that can be suffixes or prefixes of
-pieces, but that pieces cannot cross. Most of these behaviors can be
-disabled via training flags but the fact that they're used is not well
-advertised.
+Pruning is performed as described above in the approximations section,
+i.e., a piece's loss is approximated by assuming that the removed
+piece's probability mass transfers to its best alternative Viterbi
+segmentation
+(${{h}_{{\boldsymbol{\phi}}}({\mathbf{{s}}})}_{{\mathcal{V}}_{{n}}}({v})$).
+Notably, pieces whose expected counts are below a fixed value (0.5) are
+pre-pruned. Also, not all pruning is done within the EM iterations;
+there is a final pruning step that removes tokens with the lowest
+estimated probabilities in order to get to the final desired vocabulary
+size.
 
 Taken together, these implementation details instantiate one particular,
 very specific version of the abstract UnigramLM model described above,
