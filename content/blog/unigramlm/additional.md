@@ -1,6 +1,6 @@
 
-**TL;DR**:  This post is my attempt to write down the UnigramLM tokenization algorithm cleanly and explicitly because, well, I still haven't found such a derivation and I think understanding the theory behind the method could help us make it better. I'll formalize the generative model on which the algorithm's assumptions [BETTER WORD/TERM] are based, derive the EM updates, explain why pruning is needed (and how it's done), and point out the
-spots where the practical implementation defined by the SentencePiece library diverges from the pretty mathematical models. Hopefully, this post points out some interesting potential extensions/revisions to the current implementation. 
+**TL;DR**:  This post is my attempt to write down the UnigramLM tokenization algorithm cleanly and explicitly because, well, I still haven't found such a derivation and I think understanding the theory behind the method could help us make it better. I'll formalize the generative model on which the algorithm is based, derive the EM updates, explain why pruning is needed (and how it's done), and point out the
+spots where the practical implementation defined by the SentencePiece library diverges from the pretty mathematical models. I hope this post provides a new lens through which to look at the UnigramLM tokenization algorithim while pointing out some interesting potential extensions/revisions to the current implementation. 
 
 ### Intro and origins of this blog post
 *(feel free to [skip](#sec:background) this section)*
@@ -13,7 +13,7 @@ Recent work keeps showing that tokenizers themselves can induce [unfairness](htt
 #### Why this blog post
 
 With the above motivation in mind, I figured I should actually understand the algorithm. 
-So I did what everyone does: I went to the [original 2018 paper](https://aclanthology.org/P18-1007/). That... didn't get me very far. So then I went to the SentencePiece repo, hoping I could reconstruct the missing pieces from the code. After a brief flashback while staring at the C++ implementation to the terror of my undergraduate CS classes, I bailed on that approach too. Then I thought maybe the missing explanation was hiding in the HuggingFace documentation. But let's just say that rabbit hole ended like this:
+So I did what everyone does: I went to the [original 2018 paper](https://aclanthology.org/P18-1007/). That... didn't get me very far. So then I went to the SentencePiece repo, hoping I could reconstruct the missing pieces from the code. After a brief flashback to the terror of my undergraduate CS classes while staring at the C++ implementation, I bailed on that approach too. Then I thought maybe the missing explanation was hiding in the HuggingFace documentation. But let's just say that rabbit hole ended like this:
 
 
 > *The HuggingFace documentation* [on UnigramLM] *describes a
@@ -99,7 +99,13 @@ https://github.com/google/sentencepiece/blob/53de76561cfc149d3c01037f0595669ad32
 
 
 
+## Conclusions
+
+Tokenization shouldn't be just a monolithic preprocessing step you fix once and forget; it quietly defines what your model even sees as input, and can have a huge effect on the behavior and fairness of the systems trained on top of it. If we take that seriously, we should treat tokenization as a full-blown modeling choice and explore the whole design space: priors (e.g., over length), supports (which segmentations are even allowed by pretokenization choices), and inference rules (Viterbi vs sampling vs marginalization). UnigramLM occupies just one corner of that space, but understanding it clearly is a step toward thinking about tokenizers as models we can design and question, not just as default settings we inherit.
+
 #### _Acknowledgments_
 
-As with pretty much any technical work I've written, Tiago Pimentel provided critical commentary and recommendations for this blogpost. Thanks, PhD sibling :) 
+As with pretty much any technical work I've written, Tiago Pimentel provided critical commentary and recommendations for this blogpost. Thanks, PhD sibling :) And thank you to Sander Land for catching my previous misunderstandings about the SentencePiece implentation.
+
+
 
