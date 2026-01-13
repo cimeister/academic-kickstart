@@ -3,9 +3,6 @@ title: 'UnigramLM: An Attempt at Writing The Missing Manual'
 
 
 summary: Everything you didn't need to know about UnigramLM
-abstract: This is my attempt at explaining the math behind the UnigramLM tokenization algorith
-
-
 
 # Schedule page publish date (NOT talk date).
 publishDate: '2025-11-19T00:00:00Z'
@@ -966,7 +963,7 @@ Tokenization shouldn't be just a monolithic preprocessing step you fix once and 
 
 #### _Acknowledgments_
 
-As with pretty much any technical work I've written, Tiago Pimentel provided critical commentary and recommendations for this blogpost. Thanks, PhD sibling :) And thank you to Sander Land for catching my previous misunderstandings about the SentencePiece implentation.
+As with pretty much any technical work I've written, Tiago Pimentel provided critical commentary and recommendations for this blogpost. Thanks, PhD sibling :) And thank you to Sander Land for the thorough explanations of the SentencePiece implentation of UnigramLM.
 
 [^1]: Some tokenizers instead operate directly on raw bytes.
 
@@ -1002,3 +999,14 @@ As with pretty much any technical work I've written, Tiago Pimentel provided cri
 
 [^7]: This segmentation may need to include an UNK token depending on
     the base vocabulary.
+
+If you'd like to cite this blogpost, here is the BibTex:
+```bibtex
+@misc{meister2025unigramlm,
+  title   = {UnigramLM: An Attempt at Writing The Missing Manual},
+  author  = {Meister, Clara},
+  year    = {2025},
+  url     = {https://cimeister.github.io/blog/unigramlm/},
+  note    = {Blog post}
+}
+```
