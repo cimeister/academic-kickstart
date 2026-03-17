@@ -49,28 +49,28 @@ sections:
     design:
       columns: '2'
       view: citation
-  - block: markdown
-    id: talks
-    content:
-      title: Recent & Upcoming Talks
-      text: |-
-        - **18/5/2023:** Invited talk at Tel Aviv University's NLP Seminar
+  # - block: markdown
+  #   id: talks
+  #   content:
+  #     title: Recent & Upcoming Talks
+  #     text: |-
+  #       - **18/5/2023:** Invited talk at Tel Aviv University's NLP Seminar
 
-        - **21/4/2023:** Invited talk at University of Edinburgh ILCC Seminar
+  #       - **21/4/2023:** Invited talk at University of Edinburgh ILCC Seminar
 
-        - **26/9/2022:** Invited lecture at Johns Hopkins University Artificial Agents course
+  #       - **26/9/2022:** Invited lecture at Johns Hopkins University Artificial Agents course
         
-        - **6/5/2022:** Invited talk at Google Research Machine Translation Team Reading Group
+  #       - **6/5/2022:** Invited talk at Google Research Machine Translation Team Reading Group
 
-        - **14/3/2022:** Invited talk at IST-Unbabel Seminar
+  #       - **14/3/2022:** Invited talk at IST-Unbabel Seminar
 
-        - **10/8/2021:** Invited talk at UT Austin's NLP Seminar
+  #       - **10/8/2021:** Invited talk at UT Austin's NLP Seminar
 
-        - **14/7/2021:** Invited talk at Berkeley's NLP Seminar
+  #       - **14/7/2021:** Invited talk at Berkeley's NLP Seminar
 
-        - **16/6/2021:** Invited talk at MIT's Computational Psycholinguistics Lab
-    design:
-      columns: '2'
+  #       - **16/6/2021:** Invited talk at MIT's Computational Psycholinguistics Lab
+  #   design:
+  #     columns: '2'
   
   
 ---
