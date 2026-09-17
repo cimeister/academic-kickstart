@@ -21,7 +21,7 @@ toc: true
 
 # MBPP from 0.000 to 0.250, changing only the tokenizer
 
-*This is a companion post to the TokEval paper ([Meister, 2026](https://arxiv.org/abs/2608.18062)).*
+*This is a companion post to the TokEval paper ([Meister, 2026](https://arxiv.org/abs/2608.18062)). The ablations reported here were carried out as part of Apertus 2 tokenizer development, with compute provided by the Swiss AI Initiative.*
 
 > **In brief.** We analyze 70 training runs of code-specialized language models that differ only in their tokenizer. We evaluate on MBPP and HumanEval, two widely-used Python coding benchmarks. Mean MBPP pass@1 across the 58 distinct tokenizers spans 0.000 to 0.248, and the highest single run reaches 0.250. The quantity that correlates most strongly with the score is the number of vocabulary entries that contain a line break. Two types of such entries are associated with low scores, and each has its own controlled comparison. Whether either type can form is fixed by the pretokenizer regex, before any tokenizer training starts. A second defect, unrelated to the regex, leaves out single byte entries from the vocabulary silently: one of our tokenizers cannot represent `{` at all. Both defects are detectable from the tokenizer file alone, in seconds.
 
@@ -152,7 +152,7 @@ Tokenization fixes, before model training starts, which of these characters occu
 
 For digits, the impact of pretokenization choices has already been measured. Singh and Strouse ([2024](https://arxiv.org/abs/2402.14903)) studied digit-grouping conventions in frontier models and found that how digits are chunked into tokens measurably changes arithmetic ability. For code formatting syntax, and for line breaks and indentation in particular, we know of no comparable measurement.
 
-### The association across all 58 tokenizers
+### The new-line vs. performance association across all 58 tokenizers
 
 In every tokenizer, we measure the number of vocabulary entries that contain a line-break character (a line feed `\n` or a carriage return `\r`). Across the 58 tokenizers,[^3] this count correlates with mean MBPP pass@1 at Spearman rho = -0.719 (a rank correlation: both quantities are converted to ranks, and the correlation of the ranks is reported, from -1 for perfectly opposed orderings to +1 for identical orderings; p = 2.1e-10). This correlation is the most stable measurement in the post. Three different ways of aggregating across the tokenizers give correlations between -0.70 and -0.73: Restricted to the 56 tokenizers that we train ourselves, the correlation is rho = -0.705; Grouping near-duplicate tokenizers into 27 configuration families and taking one tokenizer per family, the correlation is -0.73. So, yeah, the finding is pretty robust in this context. 
 [^3]:The TokEval paper ([Meister, 2026](https://arxiv.org/abs/2608.18062)) reports the same comparison over its 20-tokenizer math+code panel, and its values differ slightly for that reason; Appendix C states why.
@@ -182,7 +182,7 @@ A note on the table: punct and scripttok-mingram-scriptenc_cb place a line break
 
 *Every tokenizer in the study, placed by its count of entries containing a line break (log scale) and its mean MBPP pass@1. Color marks what a line break can join: blue circles join punctuation to a line break, orange triangles join the line break to the indentation after it, and green squares do neither. Two tokenizers land on exactly the same point and are drawn slightly apart so both stay visible.*
 
-### The pretokenization choice(s) that permit whitespace inside tokens
+### Pretokenization choices that permit whitespace inside tokens
 
 Code corpora contain many lines like `print(x);` or `if something(x):` followed by a line break. So sequences like `);` and `):` occur frequently next to `\n` in our tokenizer's training corpus. There are two ways such examples could be handled when we're segmenting the text into pretokens. If the pretokenizer regex clause that matches punctuation runs may continue across a following line break, then `);\n` (and possible characters before or after it) will be a single pretoken. That pretoken is frequent, BPE merges frequent adjacent pairs within a pretoken, and after enough merges the vocabulary contains `);\n` as a single entry. If the regex instead splits before every line break, `);` is one pretoken and `\n` is another. No sequence of merges can join them, so that entry cannot form, at any vocabulary size, on any corpus. Let's come back to the GPT-4o punctuation clause as an example:
 
@@ -216,7 +216,7 @@ Tokenizers from LLMs, including those for dedicated code models,  are divided on
 
 > **In brief.** Deleting one pretokenizer regex clause, with the tokenizer training corpus held fixed, moves mean MBPP pass@1 from 0.086 to 0.230 across three seeds per tokenizer, and the two seed ranges do not overlap. Adding one line-break rule to the pretokenizer regex for an unrelated tokenizer family changes it from 0.016 to 0.216. We do a 2x4 grid that varies the pretokenizer regex clause and the fraction of code data in the tokenizer training corpus independently: at all code fractions, the model trained with the tokenizer that does not allow new lines to fuse to punctuation runs scores at or above its counterpart that does. On the other hand, there is no consistent performance ranking according to tokenizer training data's code fraction.
 
-### One regex clause, three seeds per tokenizer
+### Differing one regex clause
 
 gpt4o-balanced-bpe and gpt4onl-balanced-bpe are two tokenizers fit on the same corpus. They differ only in one clause of their pretokenizer regex. Specifically, in the latter,  the trailing `[\r\n/]*` is gone from the punctuation clause of the pretokenizer regex, i.e., new lines are not allowed to fuse to punctuation runs. With this change alone, the count of vocabulary entries joining a line break to punctuation falls from 1,024 to 0. We trained code-specialized language models (three seeds) on each.
 
@@ -235,7 +235,7 @@ The two score ranges do not overlap: the worst-performing seed for the tokenizer
 
 We repeat a similar contrast with the pretokenization scheme used by the SCRIPT-encoded MinGram pair, which is quite different from the GPT-4o regex family. What we refer to as the "cb" variant is the tokenizer whose pretokenization allows line breaks to be part of the same pretoken as the indentation after it; the "cb_nl" variant adds a single rule to the pretokenizer and is otherwise identical. It adds a forced pretoken boundary at line-break characters. The models trained using the cb and cb_nl tokenizers (one training run each) achieve MBPP pass@1 of 0.016 and 0.216, respectively. This is a pretty dramatic difference... To make sure this isn't just noise, we perform an exact McNemar test (a paired comparison over the 500 problems in the eval set, counting only the problems that exactly one model solves). The cb_nl model solves 104 problems the cb model misses and misses 4 that it solves. Under this test, the improvement from cb to cb_nl is significant with p-value of 3.4e-26. That p-value comes with a caution: the test compares this one pair of runs, so it tells us that the difference between these two specific models' performance on this benchmark is significant. It doesn't say anything about whether a retrain of the models with different seeds would show a similar result.
 
-### The regex clause and the tokenizer training corpus, varied independently
+### Varying regex clause and tokenizer training corpus independently
 
 Maybe the punctuation-to-line-break fusing clause only matters when the tokenizer training corpus is code-heavy? The third comparison tests this hypothesis. We fit tokenizers using the gpt4o and gpt4onl pretokenizer regex discussed in the first comparison, on each of four corpora with code fractions of 0, 5, 30, and 50 percent (described in [What we trained](#what-we-trained)). That gives us eight tokenizers in total. We trained one language model on each; the language-model training data is identical across all eight runs. As a sanity check, we checked the vocabulary. As the code-data fraction  rises the gpt4o-based tokenizers (the ones allowing punctuation-to-line-break fusing) have 482, 749, 1,393, and 1,831 vocab entries joining punctuation to a line break. Every gpt4onl-based tokenizer has zero.
 
@@ -292,7 +292,7 @@ Of course, there are confounds to any conclusions that can be drawn from this pa
 
 
 
-## The zero scores, and evaluations that do not show the defect
+## Failing models and evaluations that do not show the defect
 
 > **In brief.** Three tokenizers whose models score exactly 0.000 fail with `SyntaxError` on 99.8 percent or more of their generations and almost never on indentation. We read those generations, and all three break at the same spot: the first line of the function definition does not end in the colon Python requires, while two comparison models whose tokenizers have no entries joining punctuation to a line break never fail there. Beyond these three, there are other aspects of standard evaluation setups (including ours) that make it difficult to identify and diagnose potential sources of consistent model failures: HumanEval supplies the formatting syntax in its prompts, code bits per byte shows no association with MBPP at any reporting level, and a single training run contains seed noise larger than many of the differences being compared.
 
@@ -351,7 +351,7 @@ Everything here comes from one architecture, a 24-layer decoder of about 1.27 bi
 
 We also left some things uncontrolled. Every run takes the same 19,073 optimization steps over the same number of tokens, so a tokenizer that packs the corpus into fewer tokens per byte covers more raw text within that budget; we did not equalize the amount of text seen. Vocabulary size varies from 127,826 to 200,000 entries across the field, and a larger vocabulary could raise the count of entries containing a line break by size alone; as noted in [What we trained](#what-we-trained), the two 200,000-entry tokenizers hold 28 and 29 such entries, among the lowest in the study, so this particular confound did not materialize. The vocabulary-learning algorithm and the pretokenizer also vary together in most of our designs. Even so, the algorithm is not what distinguishes the worst scores: of the three models at exactly 0.000, two use Unigram and one (Mistral-Nemo) uses BPE, while the one Unigram tokenizer with an ordinary score, claude-balanced-unigram at 0.222, has no entries joining punctuation to a line break. The count of such entries sets the three apart from it; the algorithm does not.
 
-What remains unexplained, as of now: why the three zero-score vocabularies make their models break at the function-header colon in the first place (in [the zero scores section](#the-zero-scores-and-evaluations-that-do-not-show-the-defect) we say where the failure happens, not why); the byte-complete rebuild of gpt4o-english sitting near the top of the indentation-failure ranking despite a pretokenizer that keeps line breaks apart from the indentation after them; and why the size of seed noise depends on the tokenizer at all, with punct-balanced-bpe the extreme case (one seed of three at 0.008 while the other two score 0.211 and 0.084).
+What remains unexplained, as of now: why the three zero-score vocabularies make their models break at the function-header colon in the first place (in [the zero scores section](#the-zero-scores-and-evaluations-that-do-not-show-the-defect) we say where the failure happens, not why); the byte-complete rebuild of gpt4o-english sitting having such a high indentation-failure rate despite a pretokenizer that keeps line breaks apart from the indentation after them; and why the size of seed noise depends on the tokenizer at all, with punct-balanced-bpe the extreme case (one seed of three at 0.008 while the other two score 0.211 and 0.084).
 
 
 There are likely similar mechanisms across different programming languages, though we measured none of this: MBPP is Python-only. Other languages have characters comparable to line breaks that a parser requires. In Java and the C family, `;` ends statements and `{`...`}` delimit blocks, and the shipped vocabularies we audited put entries exactly at those junctions (` {\n`, `;\n`, `}\r`). A build with the brace defect could not emit a Java block at all. We state this as a hypothesis about where the same measurements would land in other languages, not as a finding.
@@ -450,12 +450,12 @@ The below table gives the measured seed spread across tokenizers.
 
 \*\* The mean of two runs trained with the same seed, 0.174 (2026-04, before an environment rebuild) and 0.160 (2026-08, after it); the pair is discussed in [Controlled comparisons](#controlled-comparisons).
 
-One name in this table appears nowhere else in the post: bpe-nfc-plus2-balanced is a variant of clean-multi (bpe-nfc-clean-balanced), trained on the same balanced corpus with NFC normalization. Its regex adds one prefix clause that attaches apostrophes and the Tibetan word separator to words, and its punctuation clause, like the clean-multi one, has no trailing line-break class.
+One tokenizer in this table appears nowhere else in the post: bpe-nfc-plus2-balanced is a variant of clean-multi (bpe-nfc-clean-balanced), trained on the same balanced corpus with NFC normalization. Its regex adds one prefix clause that attaches apostrophes and the Tibetan word separator to words, and its punctuation clause, like the clean-multi one, has no trailing line-break class.
 
 
-### The evaluation-configuration ablation and the prompt boundary
+### Evaluation-configuration ablations (BOS and prompt boundary)
 
-For three tokenizers we scored all four combinations of the beginning-of-sequence token and token healing.
+For three tokenizers we scored all four combinations of the beginning-of-sequence (BOS) token and token healing.
 
 | Model (tokenizer) | Benchmark | Neither | Healing only | BOS only | Both | Both against neither, McNemar p |
 |---|---|---|---|---|---|---|
@@ -466,18 +466,18 @@ For three tokenizers we scored all four combinations of the beginning-of-sequenc
 | whitespace-balanced-bpe | HumanEval | 0.0000 | 0.0061 | 0.1524 | 0.1768 | 3.7e-9 |
 | whitespace-balanced-bpe | MBPP | 0.006 | 0.016 | 0.006 | 0.102 | 9.1e-14 |
 
-One agreement in the table is a verified coincidence, not a transcription error: the scripttok-mingram-scriptenc_cb and whitespace-balanced-bpe HumanEval rows match at 0.0000, 0.1768, and p = 3.7e-9 because both models solve exactly 29 of the 164 problems in the cell with both changes and exactly 0 without them, and the identical scores and identical 29-to-0 McNemar splits follow from those counts.
+As a quick note, the exact agreement between the scripttok-mingram-scriptenc_cb and whitespace-balanced-bpe HumanEval rows is not a transcription error. They match at 0.0000, 0.1768, and p = 3.7e-9 because both models solve exactly 29 of the 164 problems in the cell with both changes and exactly 0 without them, and the identical scores and identical 29-to-0 McNemar splits follow from those counts.
 
-Both edits are important independently. In the HumanEval rows of the two affected models, the cell with both changes is above each single-ingredient cell. The two changes also matter for different tokenizers and different benchmarks. For the model trained with claude-balanced-bpe, whose prompt boundary is clean, none of the four healing contrasts reaches significance, with all four p-values at 0.25 or above, while adding the beginning-of-sequence token alone raises MBPP pass@1 from 0.220 to 0.256 (p = 0.018). For the whitespace-balanced-bpe model, MBPP pass@1 reaches 0.102 only in the cell with both changes; healing alone moves it just 0.006 to 0.016.
+What the above table tells us is that the BOS token addition and token healing are both (indepedently) important edits to the evaluation configuration. In the HumanEval rows, the tokenizers' scores with both changes are at or above each score with only a single of the edits. The two changes also matter for different tokenizers and different benchmarks. For the model trained with claude-balanced-bpe, whose prompt boundary is clean, none of the four token healing contrasts show a significant difference between the configurations, with all four p-values at 0.25 or above, while adding the beginning-of-sequence token alone raises MBPP pass@1 from 0.220 to 0.256 (p = 0.018). For the whitespace-balanced-bpe model, MBPP pass@1 reaches 0.102 only in the setting with both changes; healing alone moves it just 0.006 to 0.016.
 
 The boundary artifact is tokenizer-dependent. For the four tokenizers in the 16-tokenizer healing check whose pretokenization lets a punctuation or whitespace run extend past a following line break or indentation, encoding the HumanEval prompt alone ends mid-token on 97.6 to 99.4 percent of examples. Across the 14 runs checked on MBPP, the prompt boundary is clean for 13; the exception is whitespace-balanced-bpe, at 99.8 percent split, because its pretokenization attaches every whitespace run to the text that follows it, so a line break at the end of a prompt lands at a boundary that never occurs in training. Without healing, HumanEval pass@1 is exactly 0.0000 for three models, those trained with whitespace-balanced-bpe, punct-balanced-bpe, and scripttok-mingram-scriptenc_cb; with healing it is 0.0061, 0.0671, and 0.0305 respectively.
 
 
-The evaluation configuration also changes diagnostics, not only scores. The MBPP indentation-failure rate for punct-balanced-bpe's canonical seed-42 run is 9.4 percent under generation-spec v2, against 42.6 percent for the same run in an earlier scoring pass without the beginning-of-sequence token on the generation context. That 42.6 percent was partly an artifact of the missing token. The three-seed stratified mean is 31.3 percent, driven by one seed's collapse; [How the failing generations fail](#how-the-failing-generations-fail) unpacks the per-seed spread.
+The evaluation configuration also changes the failure types, not only scores. The MBPP indentation-failure rate for punct-balanced-bpe's canonical seed-42 run is 9.4 percent under generation-spec v2, against 42.6 percent for the same run in an earlier scoring pass without the beginning-of-sequence token on the generation context. That 42.6 percent was partly an artifact of the missing token. The three-seed stratified mean is 31.3 percent, driven by one seed's collapse; [How the failing generations fail](#how-the-failing-generations-fail) unpacks the per-seed spread.
 
 ## Appendix C: tokenizer-only metrics and the configuration-family panel
 
-Ten metrics computed on the tokenizer alone, with no model involved, were correlated with MBPP, HumanEval, and GSM8K. MBPP and HumanEval are the benchmarks from the body; GSM8K ([Cobbe et al., 2021](https://arxiv.org/abs/2110.14168)) is a benchmark of grade-school math word problems, on which the model generates a worked solution and is scored by whether the final number it produces matches the reference answer. Of the 58 tokenizers, 46 enter that analysis, and they group into 27 configuration families whose members agree on corpus, pretokenizer lineage, algorithm, normalizer, and data composition. The correlations below take one representative per family, chosen by a rule applied without reference to results, so that a cluster of near-duplicate designs counts once rather than thirteen times. The rule has four steps: first keep the members that pass the byte round-trip audit; then keep those whose vocabulary lies in the 127,826 to 131,072 band; then take the member with the fewest hyphen-separated name segments; and break any remaining tie lexicographically. Six of the thirty metric-benchmark correlations reach significance after the Benjamini-Hochberg adjustment, and five are listed here; the sixth, tokens per identifier against HumanEval (rho = -0.51, adjusted p = 0.023), is the one cell whose family-mean variant is not significant (adjusted p = 0.22), which flags a result that rides on which member represents its family, so we report it and do not build on it.
+Ten metrics computed on the tokenizer alone, with no model involved, were correlated with MBPP, HumanEval, and GSM8K. MBPP and HumanEval are the benchmarks from the body; GSM8K ([Cobbe et al., 2021](https://arxiv.org/abs/2110.14168)) is a benchmark of grade-school math word problems, on which the model generates a worked solution and is scored by whether the final number it produces matches the reference answer. We evaluated 46 of the 58 tokenizers (excluding ones from ablations). They group into 27 configuration families whose members agree on corpus, pretokenizer lineage, algorithm, normalizer, and data composition. Like elsewhere in these analyses, the correlations below take one representative per family, chosen by a rule applied without reference to results, so that a cluster of near-duplicate designs counts once rather than thirteen times. The rule has four steps: first keep the members that pass the byte round-trip audit; then keep those whose vocabulary lies in the 127,826 to 131,072 band; then take the member with the fewest hyphen-separated name segments; and break any remaining tie lexicographically. Six of the thirty metric-benchmark correlations reach significance after the Benjamini-Hochberg adjustment, and five are listed here; the sixth, tokens per identifier against HumanEval (rho = -0.51, adjusted p = 0.023), is the one cell whose family-mean variant is not significant (adjusted p = 0.22), which flags a result that rides on which member represents its family, so we report it and do not build on it.
 
 | Metric | Benchmark | Spearman rho (n = 27 families) | Adjusted p |
 |---|---|---|---|
@@ -487,10 +487,10 @@ Ten metrics computed on the tokenizer alone, with no model involved, were correl
 | Digit boundary F1 | HumanEval | +0.61 | 0.0049 |
 | Operator isolation, prose corpus | MBPP | +0.54 | 0.015 |
 
-Four of these metrics need a definition. Numeric magnitude fertility is the average number of tokens per digit when numbers are encoded, so lower values indicate that numbers are split into fewer pieces relative to their length. AST boundary alignment is the fraction of token boundaries that land on AST node boundaries in the tree-sitter library parses. Digit boundary F1 measures how closely the tokenizer's split positions inside a number agree with right-aligned three-digit grouping. Operator isolation is the fraction of code operators emitted as standalone tokens, measured here on a prose corpus.
+**Metric definitions.** Numeric magnitude fertility is the average number of tokens per digit when numbers are encoded, so lower values indicate that numbers are split into fewer pieces relative to their length. AST boundary alignment is the fraction of token boundaries that land on AST node boundaries in the tree-sitter library parses. Digit boundary F1 measures how closely the tokenizer's split positions inside a number agree with right-aligned three-digit grouping. Operator isolation is the fraction of code operators emitted as standalone tokens, measured here on a prose corpus.
 
 
-The TokEval paper carries the rest of this analysis: the remaining correlations, the control of the AST correlation for line-break handling, the dependence of each correlation on the training mixture, and the per-example fits, which find no evidence that per-problem tokenization properties predict which problems a model passes.
+The TokEval paper contains the rest of this analysis: the remaining correlations, the control of the AST correlation for line-break handling, the dependence of each correlation on the training mixture, and the per-example fits, which find no evidence that per-problem tokenization properties predict which problems a model passes.
 
 Values in the paper differ slightly from the values here, because the two documents compute them over different sets of tokenizers and models. The paper's math+code panel holds 20 custom tokenizers, and this post reports over the 58 tokenizers or over the 27 configuration families. Each document states its panel alongside every number.
 
@@ -507,7 +507,7 @@ For reference, every tokenizer count the post reports over, in one place:
 | 20 | The TokEval paper's own math+code panel | Everything this post covers beyond that paper's panel; the paper states its own membership rules |
 | 18 | The tokenizers in the fused-entry usage comparison | Every tokenizer without at least 20 MBPP generations in each of the two groups (for a tokenizer with no fused entries, the group that uses one does not exist) |
 
-Two further pairs of numbers are splits within these sets rather than panels of their own: the 21 and 37 of the Mann-Whitney comparison divide the 58 by whether the vocabulary holds an entry joining punctuation to a line break, and the 16 and 14 in Appendix B are the number of tokenizers in the healing check and the number of runs checked for a clean MBPP prompt boundary.
+Two pairs of sets in the above are splits of a larger set rather than unique sets of their own: the sets containing 21 and 37 tokenizers (used in the Mann-Whitney comparison) divide the 58 tokenizer set by whether the vocabulary holds an entry joining punctuation to a line break; the sets containing 16 and 14 tokenizers in Appendix B are the number of tokenizers in the healing check and the number of runs checked for a clean MBPP prompt boundary.
 
 ## Appendix D: statistical tests
 
@@ -523,7 +523,7 @@ Statistical claims in this post use five tests, and "significant" always means a
 
 **Partial rank correlation.** The rank correlation between two quantities after removing from both the part predicted by a third quantity, computed from the three pairwise rank correlations and tested with a t-test. The TokEval paper uses it to control the AST correlation for line-break handling, as noted in Appendix C.
 
-Two standard deviations recur and measure different things. The seed standard deviation of a configuration is the standard deviation of a score across training runs that differ only in random seed. Where a pooled seed standard deviation is quoted, it is the square root of the mean of the per-configuration seed variances. The standard deviation across a set of tokenizers is used only as a ruler for effect sizes, and it is always stated with the size of the set.
+There are two different standard deviations reported throughout the post and they measure different things. The seed standard deviation of a configuration is the standard deviation of a score across training runs that differ only in random seed. A pooled seed standard deviation is the square root of the mean of the per-configuration seed variances. The standard deviation across a set of tokenizers is used only to determine significance of effect sizes, and it is always stated with the size of the set.
 
 | Claim | Test | n | Statistic | p |
 |---|---|---|---|---|
@@ -534,7 +534,7 @@ Two standard deviations recur and measure different things. The seed standard de
 | BOS against no BOS, unhealed, model trained with claude-balanced-bpe, MBPP | McNemar | 500 problems | scores 0.220 and 0.256 | 0.018 |
 | Healing against no healing, model trained with claude-balanced-bpe | McNemar | 164 and 500 | four contrasts, score changes 0.000 to -0.006 | 0.25, 0.375, 1.0, 1.0 |
 
-Every count and rate in the fused-entry usage passage carries no row here and no test claim; that comparison fits no model by construction.
+<!-- Every count and rate in the fused-entry usage passage carries no row here and no test claim; that comparison fits no model by construction. -->
 
 ## References
 
